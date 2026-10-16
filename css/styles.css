@@ -44,7 +44,7 @@ body { margin: 0; color: var(--ink); font-family: Arial, Helvetica, sans-serif; 
   margin: 20px auto; padding: 0; overflow: hidden; background: var(--paper);
   box-shadow: 0 4px 20px #121e4b21; page-break-after: always; break-after: page;
 }
-.page-header { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 0 62px; min-height: 62px; padding: 8px 135px 8px 28px; color: #fff; background: var(--jer-blue); text-align: center; }
+.page-header { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 0 62px; min-height: 90px; padding: 8px 135px 8px 28px; color: #fff; background: var(--jer-blue); text-align: center; }
 .page-header h1 { margin: 0; font-size: 19px; line-height: 1.13; font-weight: 700; letter-spacing: .25px; text-transform: uppercase; }
 .page-header .brand-mark { position: absolute; top: 0; right: 0; display: flex; align-items: center; justify-content: center; width: 112px; height: 62px; overflow: hidden; background: var(--jer-blue); }
 .brand-mark img { display: block; width: 100px; height: auto; object-fit: contain; }
