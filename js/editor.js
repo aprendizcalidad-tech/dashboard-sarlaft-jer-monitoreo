@@ -351,8 +351,14 @@
   function applyPageOrder() {
     const pages = Array.from(root.querySelectorAll('.report-page'));
     const ids = pages.map((page) => page.dataset.pageId);
-    const order = Array.isArray(state.pageOrder) ? state.pageOrder.filter((id) => ids.includes(id)) : [];
-    ids.forEach((id) => { if (!order.includes(id)) order.push(id); });
+    const closingPage = pages.find((page) => page.classList.contains('closing-page'));
+    const closingId = closingPage ? closingPage.dataset.pageId : null;
+    // Ignora cualquier posición antigua guardada para la despedida y la coloca siempre al final.
+    const order = Array.isArray(state.pageOrder)
+      ? state.pageOrder.filter((id) => ids.includes(id) && id !== closingId)
+      : [];
+    ids.forEach((id) => { if (id !== closingId && !order.includes(id)) order.push(id); });
+    if (closingId) order.push(closingId);
     state.pageOrder = order;
     order.forEach((id) => {
       const page = pages.find((candidate) => candidate.dataset.pageId === id);
@@ -361,7 +367,13 @@
   }
 
   function updatePageNumbers() {
+    // Refuerzo adicional: la despedida siempre debe quedar como última página del DOM y del PDF.
+    const closingPage = root.querySelector('.report-page.closing-page');
+    if (closingPage && closingPage.parentElement === root && root.lastElementChild !== closingPage) {
+      root.appendChild(closingPage);
+    }
     const pages = Array.from(root.querySelectorAll('.report-page'));
+    state.pageOrder = pages.map((page) => page.dataset.pageId);
     pages.forEach((page, index) => {
       const footer = page.querySelector('.page-footer');
       if (footer) footer.textContent = (index + 1) + ' / ' + pages.length;
@@ -569,6 +581,10 @@
   deleteButton.addEventListener('click', async () => {
     const page = ensureSelectedPage();
     if (!page) return;
+    if (page.classList.contains('closing-page')) {
+      notify('La página de despedida está fijada al final del informe y no se puede eliminar.', 'error');
+      return;
+    }
     const title = page.querySelector('.page-header h1')?.textContent || 'esta página';
     if (!window.confirm('¿Eliminar "' + title + '" del informe y del PDF? Esto no elimina datos de Google Sheets.')) return;
     pushHistory();
@@ -587,6 +603,10 @@
   async function moveSelected(offset) {
     const page = ensureSelectedPage();
     if (!page) return;
+    if (page.classList.contains('closing-page')) {
+      notify('La página de despedida debe permanecer al final del informe.', 'error');
+      return;
+    }
     const pages = Array.from(root.querySelectorAll('.report-page'));
     const index = pages.indexOf(page);
     const target = index + offset;
@@ -594,8 +614,8 @@
     pushHistory();
     if (offset < 0) root.insertBefore(page, pages[target]);
     else root.insertBefore(pages[target], page);
-    state.pageOrder = Array.from(root.querySelectorAll('.report-page')).map((item) => item.dataset.pageId);
     updatePageNumbers();
+    state.pageOrder = Array.from(root.querySelectorAll('.report-page')).map((item) => item.dataset.pageId);
     await saveNow();
   }
   upButton.addEventListener('click', () => moveSelected(-1));

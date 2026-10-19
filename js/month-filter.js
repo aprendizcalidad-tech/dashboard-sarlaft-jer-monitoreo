@@ -7,6 +7,8 @@
     H1: MONTHS.slice(0, 6), H2: MONTHS.slice(6, 12)
   };
   let selected = MONTHS.slice();
+  let selectedPreset = 'ALL';
+  const PRESET_LABELS = { ALL: 'Todos', Q1: 'T1', Q2: 'T2', Q3: 'T3', Q4: 'T4', H1: 'Sem. 1', H2: 'Sem. 2' };
   const toggle = document.getElementById('month-toggle');
   const popover = document.getElementById('month-popover');
   const checkboxes = document.getElementById('month-checkboxes');
@@ -17,18 +19,24 @@
     checkboxes.querySelectorAll('input').forEach((input) => input.addEventListener('change', () => {
       const values = Array.from(checkboxes.querySelectorAll('input:checked')).map((el) => el.value);
       selected = MONTHS.filter((month) => values.includes(month));
+      selectedPreset = selected.length === 12 ? 'ALL' : 'CUSTOM';
       updateSummary();
     }));
     updateSummary();
   }
   function updateSummary() {
     const all = selected.length === 12;
-    const summary = all ? 'Todos' : selected.length === 0 ? 'Ninguno' : selected.map((month) => LABELS[MONTHS.indexOf(month)].slice(0, 3)).join(', ');
+    const summary = selectedPreset !== 'CUSTOM' ? (PRESET_LABELS[selectedPreset] || 'Todos') : (all ? 'Todos' : selected.length === 0 ? 'Ninguno' : selected.map((month) => LABELS[MONTHS.indexOf(month)].slice(0, 3)).join(', '));
     toggle.textContent = 'Meses: ' + summary;
     count.textContent = selected.length + (selected.length === 1 ? ' mes seleccionado' : ' meses seleccionados');
   }
-  function set(values) {
+  function set(values, presetKey) {
     selected = MONTHS.filter((month) => values.includes(month));
+    if (presetKey && Object.prototype.hasOwnProperty.call(PRESETS, presetKey)) {
+      selectedPreset = presetKey;
+    } else {
+      selectedPreset = selected.length === 12 ? 'ALL' : 'CUSTOM';
+    }
     renderCheckboxes();
   }
   function positionPopover() {
@@ -68,12 +76,16 @@
     popover.hidden = true;
     toggle.setAttribute('aria-expanded', 'false');
   });
-  document.querySelectorAll('.month-preset').forEach((button) => button.addEventListener('click', () => set(PRESETS[button.dataset.preset] || MONTHS)));
+  document.querySelectorAll('.month-preset').forEach((button) => button.addEventListener('click', () => {
+    const presetKey = button.dataset.preset;
+    set(PRESETS[presetKey] || MONTHS, presetKey);
+  }));
   renderCheckboxes();
   window.JERMonthFilter = {
     getSelection: () => MONTHS.filter((month) => selected.includes(month)),
     setSelection: set,
-    getLabel: () => selected.length === 12 ? 'TODOS LOS MESES' : selected.map((month) => LABELS[MONTHS.indexOf(month)].toUpperCase()).join(' · '),
+    getPeriodPreset: () => selectedPreset,
+    getLabel: () => selectedPreset !== 'CUSTOM' ? ({ ALL: 'TODOS LOS MESES', Q1: 'TRIMESTRE 1', Q2: 'TRIMESTRE 2', Q3: 'TRIMESTRE 3', Q4: 'TRIMESTRE 4', H1: 'SEMESTRE 1', H2: 'SEMESTRE 2' }[selectedPreset] || 'TODOS LOS MESES') : (selected.length === 12 ? 'TODOS LOS MESES' : selected.map((month) => LABELS[MONTHS.indexOf(month)].toUpperCase()).join(' · ')),
     monthOrder: MONTHS.slice()
   };
 })();

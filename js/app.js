@@ -4,6 +4,78 @@
   const MONTH_ORDER = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
   const PALETTE = ['#3549a8', '#55a9d6', '#d83b43', '#7a88c9'];
   const charts = [];
+  const chartDataLabels = {
+    id: 'jerVisibleDataLabels',
+    afterDatasetsDraw(chart) {
+      if (!chart || !chart.chartArea || !chart.data || !chart.data.labels) return;
+      const { ctx, chartArea, data } = chart;
+      const visibleBars = data.datasets.reduce((total, dataset, index) => {
+        const meta = chart.getDatasetMeta(index);
+        return total + (meta && !meta.hidden && meta.type === 'bar' ? 1 : 0);
+      }, 0);
+      const labelCount = Math.max(1, data.labels.length);
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.lineJoin = 'round';
+      data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden || dataset.hidden || !Array.isArray(meta.data)) return;
+        const isLine = meta.type === 'line' || dataset.type === 'line';
+        const slots = chartArea.width / (labelCount * Math.max(1, isLine ? 1 : visibleBars));
+        const fontSize = data.labels.length >= 10 || visibleBars > 1 ? 7 : 8;
+        ctx.font = '600 ' + fontSize + 'px Arial, sans-serif';
+        meta.data.forEach((element, index) => {
+          const rawValue = dataset.data[index];
+          if (rawValue == null || rawValue === '' || !Number.isFinite(Number(rawValue))) return;
+          const value = Number(rawValue);
+          const fullLabel = formatNumber(value);
+          let label = fullLabel;
+          const maxTextWidth = Math.max(20, slots * 0.92);
+          if (ctx.measureText(label).width > maxTextWidth) {
+            label = compactDataLabel(value);
+          }
+          if (ctx.measureText(label).width > maxTextWidth) {
+            const reduced = Math.max(5.5, fontSize - 1.5);
+            ctx.font = '600 ' + reduced + 'px Arial, sans-serif';
+            if (ctx.measureText(label).width > maxTextWidth) label = compactDataLabel(value, true);
+          }
+          const point = element.getProps ? element.getProps(['x', 'y'], true) : element;
+          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+          let y = point.y;
+          let baseline = 'bottom';
+          if (isLine) {
+            // Colocar el valor debajo del punto evita que choque con la etiqueta de la barra.
+            y = point.y + 12;
+            baseline = 'top';
+            if (y + 8 > chartArea.bottom - 1) {
+              y = point.y - 7;
+              baseline = 'bottom';
+            }
+          } else {
+            y = point.y - 4;
+          }
+          // El contorno blanco mejora la lectura y también queda incorporado en el PDF.
+          ctx.textBaseline = baseline;
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = '#ffffff';
+          ctx.fillStyle = '#252b3a';
+          ctx.strokeText(label, point.x, y);
+          ctx.fillText(label, point.x, y);
+          ctx.font = '600 ' + fontSize + 'px Arial, sans-serif';
+        });
+      });
+      ctx.restore();
+    }
+  };
+
+  function compactDataLabel(value, veryCompact) {
+    const abs = Math.abs(value);
+    const localeOptions = { maximumFractionDigits: veryCompact ? 0 : 1 };
+    if (abs >= 1e9) return (value / 1e9).toLocaleString('es-CO', localeOptions) + (veryCompact ? ' mil M' : ' mil M');
+    if (abs >= 1e6) return (value / 1e6).toLocaleString('es-CO', localeOptions) + ' M';
+    if (abs >= 1e3) return (value / 1e3).toLocaleString('es-CO', localeOptions) + ' mil';
+    return formatNumber(value);
+  }
   const pagesRoot = document.getElementById('report-pages');
   const statusBanner = document.getElementById('status-banner');
   const yearSelect = document.getElementById('year-select');
@@ -194,13 +266,16 @@
       type: 'bar', data: { labels, datasets: series },
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
+        // Espacio adicional arriba para que los valores no queden cortados.
+        layout: { padding: { top: 20, left: 3, right: 3 } },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: series.length > 1, position: 'top', labels: { boxWidth: 10, boxHeight: 8, padding: 10, font: { size: 9 } } },
           tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ': ' + formatNumber(ctx.parsed.y) } }
         },
         scales
-      }
+      },
+      plugins: [chartDataLabels]
     });
     charts.push(instance);
   }
@@ -510,11 +585,12 @@
     try {
       await window.JEREditor.ready();
       const idToken = await window.JERAuth.getIdToken();
-      const result = await postToAppsScript({ action: 'data', idToken, year, months }, 45000);
+      const periodPreset = window.JERMonthFilter.getPeriodPreset ? window.JERMonthFilter.getPeriodPreset() : 'CUSTOM';
+      const result = await postToAppsScript({ action: 'data', idToken, year, months, periodPreset }, 45000);
       if (!result || result.ok !== true) throw new Error(readableBackendError(result));
       latestResponse = result;
       populateYears(result.availableYears || [], result.year);
-      window.JERMonthFilter.setSelection(result.months || months);
+      window.JERMonthFilter.setSelection(result.months || months, result.periodPreset || periodPreset);
       renderReport();
       const warningCount = Array.isArray(result.warnings) ? result.warnings.length : 0;
       const newCount = Array.isArray(result.newSheets) ? result.newSheets.length : 0;
