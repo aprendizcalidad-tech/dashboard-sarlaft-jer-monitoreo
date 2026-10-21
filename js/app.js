@@ -22,7 +22,7 @@
         if (!meta || meta.hidden || dataset.hidden || !Array.isArray(meta.data)) return;
         const isLine = meta.type === 'line' || dataset.type === 'line';
         const slots = chartArea.width / (labelCount * Math.max(1, isLine ? 1 : visibleBars));
-        const fontSize = data.labels.length >= 10 || visibleBars > 1 ? 12 : 14;
+        const fontSize = data.labels.length >= 10 || visibleBars > 1 ? 13 : 15;
         ctx.font = '600 ' + fontSize + 'px Arial, sans-serif';
         meta.data.forEach((element, index) => {
           const rawValue = dataset.data[index];
@@ -35,7 +35,7 @@
             label = compactDataLabel(value);
           }
           if (ctx.measureText(label).width > maxTextWidth) {
-            const reduced = Math.max(5.5, fontSize - 1.5);
+            const reduced = Math.max(11, fontSize - 2);
             ctx.font = '600 ' + reduced + 'px Arial, sans-serif';
             if (ctx.measureText(label).width > maxTextWidth) label = compactDataLabel(value, true);
           }
