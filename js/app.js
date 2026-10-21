@@ -22,7 +22,7 @@
         if (!meta || meta.hidden || dataset.hidden || !Array.isArray(meta.data)) return;
         const isLine = meta.type === 'line' || dataset.type === 'line';
         const slots = chartArea.width / (labelCount * Math.max(1, isLine ? 1 : visibleBars));
-        const fontSize = data.labels.length >= 10 || visibleBars > 1 ? 7 : 8;
+        const fontSize = data.labels.length >= 10 || visibleBars > 1 ? 10 : 12;
         ctx.font = '600 ' + fontSize + 'px Arial, sans-serif';
         meta.data.forEach((element, index) => {
           const rawValue = dataset.data[index];
