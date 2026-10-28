@@ -94,43 +94,21 @@
         const candidates = [];
 
         if (isLine) {
-          // Las etiquetas de línea prueban debajo y encima del punto,
-          // alejándose progresivamente de las etiquetas ya colocadas.
-          for (let level = 0; level < 10; level++) {
-            const distance = 8 + level * (fontSize + 4);
+  // Las etiquetas de las líneas se colocan ENCIMA de sus puntos.
+  // Si coinciden con etiquetas de barras, prueban otras posiciones.
 
-            candidates.push({
-              xOffset: 0,
-              y: point.y + distance,
-              baseline: 'top'
-            });
+  const verticalOffsets = [5, 20, 35, 50, 65];
+  const horizontalOffsets = [0, -20, 20, -32, 32];
 
-            candidates.push({
-              xOffset: 0,
-              y: point.y - distance,
-              baseline: 'bottom'
-            });
-          }
-
-          // Si el espacio vertical es limitado, probar pequeños
-          // desplazamientos laterales.
-          for (let level = 0; level < 4; level++) {
-            const distance = 8 + level * (fontSize + 4);
-
-            [-9, 9].forEach((xOffset) => {
-              candidates.push({
-                xOffset,
-                y: point.y + distance,
-                baseline: 'top'
-              });
-
-              candidates.push({
-                xOffset,
-                y: point.y - distance,
-                baseline: 'bottom'
-              });
-            });
-          }
+  verticalOffsets.forEach((distance) => {
+    horizontalOffsets.forEach((xOffset) => {
+      candidates.push({
+        xOffset,
+        y: point.y - distance,
+        baseline: 'bottom'
+      });
+    });
+  });
         } else {
           // Las barras tienen prioridad: empezar encima de cada barra
           // y buscar alturas alternativas si hay otra etiqueta allí.
