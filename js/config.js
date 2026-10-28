@@ -23,7 +23,7 @@ const JER_CONFIG = {
       { title: 'GIROS PAGADOS POR PERSONA', sheet: 'N. PER GIROS PAG. BOY' },
       { title: 'MONTO DE GIROS PAGADOS', sheet: 'TOTAL GIROS PAG. BOY' }
     ]},
-    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE GIROS BOYACÁ', text: 'Durante el período evaluado, el sistema de monitoreo transaccional evaluó las operaciones del departamento de Boyacá. El resultado del monitoreo y las alertas generadas debe ser revisado por la Oficial de Cumplimiento conforme a las políticas SARLAFT vigentes.' },
+    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE GIROS BOYACÁ', text: 'Durante el período evaluado, el sistema de monitoreo transaccional evaluó el 100% de las operaciones del departamento de Boyacá. presentando un comportamiento operativo estable y alineado con las políticas de prevención de lavado de activos y financiación del terrorismo (SARLAFT) de la organización. Tras el análisis de las alertas generadas por el sistema de monitoreo automatizado y las revisiones manuales correspondientes, se concluye que la operación en Boyacá se encuentra dentro de los límites de tolerancia al riesgo establecidos por la organización. No se identificaron tipologías de fraude masivo, pitufeo (estructuración) descontrolado o redes de captación ilegal en la región.' },
 
     { type: 'metric', title: 'MONITOREO DE GIROS AMAZONAS', metrics: [
       { title: 'CANTIDAD DE GIROS ENVIADOS', sheet: ' N. GIROS ENV AMZ' },
@@ -37,7 +37,7 @@ const JER_CONFIG = {
       { title: 'GIROS PAGADOS POR PERSONA', sheet: 'N. PER GIROS PAG. AMZ' },
       { title: 'MONTO DE GIROS PAGADOS', sheet: 'TOTAL GIROS PAG. AMZ' }
     ]},
-    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE GIROS AMAZONAS', text: 'Durante el período evaluado, el sistema de monitoreo transaccional evaluó las operaciones del departamento de Amazonas. El resultado del monitoreo y las alertas generadas debe ser revisado por la Oficial de Cumplimiento conforme a las políticas SARLAFT vigentes.' },
+    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE GIROS AMAZONAS', text: 'Durante el período evaluado, el sistema de monitoreo transaccional evaluó el 100% de las operaciones del departamento de Amazonas el servicio de giros postales presentó un comportamiento operativo estable, seguro y alineado con las políticas del Sistema de Administración del Riesgo de Lavado de Activos y Financiación del Terrorismo (SARLAFT). A pesar de ser una zona de frontera con dinámicas comerciales particulares, las alertas automatizadas y los controles de debida diligencia aplicados en los puntos de atención demuestran que la operación en Amazonas se encuentra dentro de los límites de tolerancia al riesgo establecidos por la organización. No se detectaron patrones de estructuración transfronteriza, flujos atípicos de efectivo ni sospechas de financiación de actividades ilícitas.' },
 
     { type: 'metric', title: 'MONITOREO BETPLAY BOYACÁ', metrics: [
       { title: 'CANTIDAD DE RECARGAS', sheet: 'CANT RECARGAS BETPLAY BOY' },
@@ -51,7 +51,7 @@ const JER_CONFIG = {
       { title: 'RETIROS POR PERSONA', sheet: 'N PERSONAS RETIROS BOY' },
       { title: 'MONTO DE RETIROS', sheet: 'MONTOS RETIROS BOY' }
     ]},
-    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE BETPLAY BOYACÁ', text: 'Se realiza monitoreo de recargas y retiros de Betplay conforme a la política de monitoreo transaccional de la organización. Las operaciones que superen los umbrales definidos deben ser objeto de análisis y seguimiento, de acuerdo con los procedimientos internos vigentes.' },
+    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE BETPLAY BOYACÁ', text: 'Se realizó monitoreo de recargas y retiros de Betplay, acorde con la politica de monitoreo transaccional establecida por la organización, se generó alerta vía correo electronico a corredor empresarial para clientes con recargas o retiros por montos superiores a 40 millones de pesos por persona, con el fin de que se efectue análisis detallado de las apuestas y de ser el caso se realice el bloqueo del usuario. para usuarios internos se solicito a los gestores de zona indagar el motivo de recargas frecuentes de los colocadores y colaboradores de nómina con el fin de recordarles las implicaciones de prestar su nombre para realizar este tipo de apuestas, así como efectuar indagación acerca del origen de los fondos con los que realizan las recargas.' },
 
     { type: 'metric', title: 'MONITOREO BETPLAY AMAZONAS', metrics: [
       { title: 'CANTIDAD DE RECARGAS', sheet: 'CANT RECARGAS BETPLAY AMZ' },
@@ -65,8 +65,7 @@ const JER_CONFIG = {
       { title: 'RETIROS POR PERSONA', sheet: 'N PERSONAS RETIROS AMZ' },
       { title: 'MONTO DE RETIROS', sheet: 'MONTOS RETIROS AMZ' }
     ]},
-    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE BETPLAY AMAZONAS', text: 'Se realiza monitoreo de recargas y retiros de Betplay conforme a la política de monitoreo transaccional de la organización. Las operaciones que superen los umbrales definidos deben ser objeto de análisis y seguimiento, de acuerdo con los procedimientos internos vigentes.' },
-
+    { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE BETPLAY AMAZONAS', text: 'Se realizó monitoreo de recargas y retiros de Betplay, acorde con la politica de monitoreo transaccional establecida por la organización, se generó alerta vía correo electronico a corredor empresarial para clientes con recargas o retiros por montos superiores a 40 millones de pesos por persona, con el fin de que se efectue análisis detallado de las apuestas y de ser el caso se realice el bloqueo del usuario. para usuarios internos se solicito a los gestores de zona indagar el motivo de recargas frecuentes de los colocadores y colaboradores de nómina con el fin de recordarles las implicaciones de prestar su nombre para realizar este tipo de apuestas, así como efectuar indagación acerca del origen de los fondos con los que realizan las recargas.' },
     { type: 'metric', title: 'MONITOREO DE PREMIOS BOYACÁ', metrics: [
       { title: 'CANTIDAD DE PREMIOS CHANCE', sheet: 'CANT PREMIOS CHANCE BOY' },
       { title: 'PREMIOS CHANCE POR PERSONA', sheet: 'N. PERSONAS PREMIOS CHANCE BOY' }
@@ -79,8 +78,13 @@ const JER_CONFIG = {
       { title: 'PREMIOS INSTANTÁNEAS POR PERSONA', sheet: 'N. PERSONAS INSTANT BOY.' },
       { title: 'MONTO DE PREMIOS INSTANTÁNEAS', sheet: 'MONTOS INSTANT. BOY' }
     ]},
-    { type: 'narrative', title: 'MONITOREO PAGO DE PREMIOS BOYACÁ', text: 'Como medida de prevención, se recuerda a la fuerza de venta la importancia de cumplir las políticas y controles aplicables al cobro de premios. Las operaciones revisadas deben mantenerse dentro de los criterios definidos y escalarse cuando corresponda.' },
-
+    { type: 'narrative', title: 'MONITOREO PAGO DE PREMIOS BOYACÁ', text: `Como medida de prevención, se solicitó a los Gestores de zona, recordar a la fuerza de venta, las implicaciones legales y tributarias que puede tener el “prestar el nombre” para el cobro de premios.
+      
+      En cuanto a clientes externos ganadores de premios y que se ajustaron a la politica de monitoreo transaccional se pudo determinar que fueron ganadores de premios superiores a 5 millones de pesos y fueron validados por el área de auditoría de manera previa al pago, sin novedades. Así mismo se solicito indagación prudente en campo por parte de gestores de zona.
+      
+      Clientes ganadores INTERNOS: Se tiene en cuenta la estrategia comercial de los vendedores de chance, de cobro de premios de clientes frecuentes, como medida de fidelización de clientes.
+      
+      teniendo en cuenta que las transacciones analizadas se encuentran dentro del rango de normalidad establecido por JER S.A. no se generan alertas por operaciones inusuales o sospechosas.` },
     { type: 'metric', title: 'MONITOREO DE PREMIOS AMAZONAS', metrics: [
       { title: 'CANTIDAD DE PREMIOS CHANCE', sheet: 'CANT PREMIOS CHANCE AMZ' },
       { title: 'PREMIOS CHANCE POR PERSONA', sheet: 'N. PERSONAS PREMIOS CHANCE AMZ' }
@@ -93,8 +97,13 @@ const JER_CONFIG = {
       { title: 'PREMIOS INSTANTÁNEAS POR PERSONA', sheet: 'N. PERSONAS INSTANT AMZ.' },
       { title: 'MONTO DE PREMIOS INSTANTÁNEAS', sheet: 'MONTOS INSTANT. AMZ' }
     ]},
-    { type: 'narrative', title: 'MONITOREO PAGO DE PREMIOS AMAZONAS', text: 'Como medida de prevención, se recuerda a la fuerza de venta la importancia de cumplir las políticas y controles aplicables al cobro de premios. Las operaciones revisadas deben mantenerse dentro de los criterios definidos y escalarse cuando corresponda.' },
-
+    { type: 'narrative', title: 'MONITOREO PAGO DE PREMIOS AMAZONAS', text: `Como medida de prevención, se solicitó a la Gestora de zona, recordar a la fuerza de venta, las implicaciones legales y tributarias que puede tener el “prestar el nombre” para el cobro de premios.
+      
+      Ningún cliente externo se ajustó a la politica de monitoreo transaccional. Clientes ganadores EXTERNOS: Se continua con el seguimiento y monitoreo para el cobro de premios por parte de clientes EXTERNOS, incluyendo la verificación diaria, por parte de auditoría, de premiación mayor de cinco millones.
+      
+      Clientes ganadores INTERNOS: Se tiene en cuenta la estrategia comercial de los vendedores de chance, de cobro de premios de clientes frecuentes, como medida de fidelización de clientes.
+      
+      teniendo en cuenta que las transacciones analizadas se encuentran dentro del rango de normalidad establecido por JER S.A. no se generan alertas por operaciones inusuales o sospechosas.` },
     { type: 'pairedTables', title: 'OPERACIONES INUSUALES · OPERACIONES SOSPECHOSAS', cards: [
       { title: 'REPORTES ROS', sheet: 'ROS' }, { title: 'OPERACIONES INUSUALES DE GIROS', sheet: 'ROI' }
     ]},
@@ -115,7 +124,7 @@ const JER_CONFIG = {
 
   activities: [
     'Monitoreo de transacciones de giros, cobro de premios de chance e instantáneas, recargas y retiros de Betplay.',
-    'Reportes mensuales a entes de control.',
+    'Reportes mensuales a Entes de control.',
     'Debida diligencia en la verificación de terceros.',
     'Plan de capacitación e inducción en la prevención del LA/FT-PADM.',
     'Formación y actualización de competencias.',

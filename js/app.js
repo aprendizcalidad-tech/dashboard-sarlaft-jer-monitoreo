@@ -592,7 +592,7 @@
 
   function renderCover() {
     const { body } = createPage('INFORME DE GESTIÓN SARLAFT · OFICIAL DE CUMPLIMIENTO', 'cover-page');
-    const intro = 'Continuando con la cultura de prevención y control del LA/FT-PADM, la Oficial de Cumplimiento de JER S.A. (departamentos Boyacá y Amazonas) desarrolla actividades de debida diligencia, capacitación, monitoreo, análisis, seguimiento y control de operaciones, de acuerdo con los lineamientos y políticas vigentes de la organización.';
+    const intro = 'Continuando con la cultura de prevención y control del LA/FT-PADM, la Oficial de Cumplimiento de JER S.A. (departamentos Boyacá y Amazonas) desarrolló, durante el periodo, actividades de debida diligencia, capacitación, monitoreo, análisis, seguimiento y control de operacione en prevención del Lavado de activos, financiación del terrorismo y proliferación de armas de destrucción masiva, acorde con los lineamientos de Acuerdo 897 de 2026.';
     body.innerHTML = '<div class="cover-content"><div class="period-box">PERÍODO: ' + esc((latestResponse.monthLabel || 'Todos los meses') + ' · ' + latestResponse.year) + '</div><p class="cover-copy">' + esc(intro) + '</p></div>';
   }
 
