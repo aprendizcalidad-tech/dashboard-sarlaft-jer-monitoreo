@@ -5,281 +5,327 @@
   const PALETTE = ['#3549a8', '#55a9d6', '#d83b43', '#7a88c9'];
   const charts = [];
   const chartDataLabels = {
-  id: 'jerVisibleDataLabels',
+    id: 'jerVisibleDataLabels',
 
-  afterDatasetsDraw(chart) {
-    if (!chart || !chart.chartArea || !chart.data || !chart.data.labels) return;
+    afterDatasetsDraw(chart) {
+      if (!chart || !chart.chartArea || !chart.data || !chart.data.labels) return;
 
-    const { ctx, chartArea, data } = chart;
-
-    const visibleBars = data.datasets.reduce((total, dataset, index) => {
-      const meta = chart.getDatasetMeta(index);
-      return total + (
-        meta && !meta.hidden && meta.type === 'bar' ? 1 : 0
-      );
-    }, 0);
-
-    const labelCount = Math.max(1, data.labels.length);
-    const baseFontSize =
-      data.labels.length >= 10 || visibleBars > 1 ? 13 : 15;
-
-    const pendingLabels = [];
-
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.lineJoin = 'round';
-
-    // 1. Recopilar todas las etiquetas de las barras y las líneas.
-    data.datasets.forEach((dataset, datasetIndex) => {
-      const meta = chart.getDatasetMeta(datasetIndex);
-
-      if (
-        !meta ||
-        meta.hidden ||
-        dataset.hidden ||
-        !Array.isArray(meta.data)
-      ) return;
-
-      const isLine = meta.type === 'line' || dataset.type === 'line';
-
-      const slots = chartArea.width /
-        (
-          labelCount *
-          Math.max(1, isLine ? 1 : visibleBars)
-        );
-
-      meta.data.forEach((element, index) => {
-        const rawValue = dataset.data[index];
-
-        if (
-          rawValue == null ||
-          rawValue === '' ||
-          !Number.isFinite(Number(rawValue))
-        ) return;
-
-        const value = Number(rawValue);
-        let label = formatNumber(value);
-        let fontSize = baseFontSize;
-
-        const maxTextWidth = Math.max(28, slots * 0.92);
-
-        ctx.font = `600 ${fontSize}px Arial, sans-serif`;
-
-        // Intentar mostrar el valor completo.
-        if (ctx.measureText(label).width > maxTextWidth) {
-          label = compactDataLabel(value);
-        }
-
-        // Reducir ligeramente la letra solo si es necesario.
-        if (ctx.measureText(label).width > maxTextWidth) {
-          fontSize = Math.max(11, baseFontSize - 2);
-          ctx.font = `600 ${fontSize}px Arial, sans-serif`;
-        }
-
-        // Abreviar como último recurso.
-        if (ctx.measureText(label).width > maxTextWidth) {
-          label = compactDataLabel(value, true);
-        }
-
-        const point = element.getProps
-          ? element.getProps(['x', 'y'], true)
-          : element;
-
-        if (
-          !point ||
-          !Number.isFinite(point.x) ||
-          !Number.isFinite(point.y)
-        ) return;
-
-        const candidates = [];
-
-        if (isLine) {
-  // Números de la línea: siempre encima del punto.
-  // Se desplazan hacia arriba si hay otra etiqueta cerca.
-  const distances = [10, 25, 40, 55, 70, 85];
-
-  distances.forEach((distance) => {
-    candidates.push({
-      xOffset: 0,
-      y: point.y - distance,
-      baseline: 'bottom'
-    });
-  });
-
-} else {
-  // Números de las barras: dentro de la barra.
-  const baseY = Number.isFinite(element.base)
-    ? element.base
-    : chartArea.bottom;
-
-  const barHeight = Math.abs(baseY - point.y);
-  const textHeight = fontSize * 1.3;
-
-  if (value !== 0 && barHeight >= textHeight + 8) {
-    candidates.push({
-      xOffset: 0,
-      y: point.y + 5,
-      baseline: 'top'
-    });
-  } else {
-    // Para barras pequeñas o de valor cero, colocar el número encima.
-    [8, 22, 36].forEach((distance) => {
-      candidates.push({
-        xOffset: 0,
-        y: point.y - distance,
-        baseline: 'bottom'
+      const { ctx, chartArea, data } = chart;
+      const canvasWidth = chart.width;
+      const canvasHeight = chart.height;
+      const visibleDatasets = data.datasets.filter((dataset, index) => {
+        const meta = chart.getDatasetMeta(index);
+        return meta && !meta.hidden && !dataset.hidden;
       });
-    });
-  }
-          // Última alternativa: dentro de la barra.
-          candidates.push({
-            xOffset: 0,
-            y: point.y + 4,
-            baseline: 'top'
+      const visibleBars = visibleDatasets.filter((dataset, index) => {
+        const meta = chart.getDatasetMeta(data.datasets.indexOf(dataset));
+        return meta && meta.type === 'bar';
+      }).length;
+      const labelCount = Math.max(1, data.labels.length);
+      const baseFontSize = labelCount >= 10 ? 12 : (labelCount >= 7 ? 13 : 15);
+      const legendHeight = visibleDatasets.length > 1
+        ? visibleDatasets.length * 15 + 6
+        : 0;
+      // No dibujar etiquetas sobre las marcas del eje X ni dentro de la leyenda.
+      const maxLabelBottom = Math.min(
+        chartArea.bottom - 2,
+        canvasHeight - legendHeight - 2
+      );
+      const pendingLabels = [];
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.lineJoin = 'round';
+
+      function setFont(size) {
+        ctx.font = `700 ${size}px Arial, sans-serif`;
+      }
+
+      function fittedLabel(value, maxWidth) {
+        const candidates = [
+          formatNumber(value),
+          compactDataLabel(value),
+          compactDataLabel(value, true)
+        ];
+
+        // Preferimos el número completo; solo abreviamos cuando no cabe.
+        for (const candidateLabel of [...new Set(candidates)]) {
+          for (let size = baseFontSize; size >= 9; size -= 1) {
+            setFont(size);
+            if (ctx.measureText(candidateLabel).width <= maxWidth) {
+              return {
+                label: candidateLabel,
+                fontSize: size,
+                width: ctx.measureText(candidateLabel).width
+              };
+            }
+          }
+        }
+
+        const fallback = compactDataLabel(value, true);
+        setFont(9);
+        return {
+          label: fallback,
+          fontSize: 9,
+          width: ctx.measureText(fallback).width
+        };
+      }
+
+      function makeCandidates(item) {
+        const candidates = [];
+        const verticalStep = Math.max(14, Math.ceil(item.fontSize * 1.35));
+        const horizontalOffsets = [0, -8, 8, -16, 16, -24, 24, -32, 32];
+
+        if (!item.isLine && item.barHeight >= item.fontSize * 1.3 + 10) {
+          // Las etiquetas de las barras se colocan dentro de la barra, en blanco.
+          // Si chocan con otra etiqueta, prueban niveles más bajos dentro de la barra.
+          const maxInsideY = item.baseY - item.fontSize * 1.3 - 3;
+          for (let y = item.point.y + 4; y <= maxInsideY; y += verticalStep) {
+            [0, -8, 8, -16, 16].forEach((xOffset) => {
+              candidates.push({ xOffset, y, baseline: 'top', inside: true });
+            });
+          }
+        }
+
+        // Las etiquetas de líneas y los valores pequeños/ceros de barras se
+        // prueban por encima de su punto/barra, usando primero la posición más cercana.
+        for (let distance = 6; distance <= canvasHeight + 30; distance += verticalStep) {
+          horizontalOffsets.forEach((xOffset) => {
+            candidates.push({
+              xOffset,
+              y: item.point.y - distance,
+              baseline: 'bottom',
+              inside: false
+            });
           });
         }
 
-        pendingLabels.push({
-          x: point.x,
-          label,
-          fontSize,
-          width: ctx.measureText(label).width,
-          isLine,
-          candidates
-        });
-      });
-    });
-
-    // 2. Dibujar primero las etiquetas de las barras.
-    // Las de las líneas buscarán una posición que no las tape.
-    pendingLabels.sort(
-      (a, b) => Number(a.isLine) - Number(b.isLine)
-    );
-
-    const placedRects = [];
-
-    function makeRect(item, candidate) {
-      const height = item.fontSize * 1.3;
-      const wantedX = item.x + (candidate.xOffset || 0);
-
-      const minX = chartArea.left + item.width / 2 + 2;
-      const maxX = chartArea.right - item.width / 2 - 2;
-
-      const drawX = minX <= maxX
-        ? Math.max(minX, Math.min(maxX, wantedX))
-        : (chartArea.left + chartArea.right) / 2;
-
-      const textTop = candidate.baseline === 'top'
-        ? candidate.y
-        : candidate.y - height;
-
-      return {
-        x: drawX,
-        y: candidate.y,
-        baseline: candidate.baseline,
-        left: drawX - item.width / 2 - 2,
-        right: drawX + item.width / 2 + 2,
-        top: textTop - 2,
-        bottom: textTop + height + 2
-      };
-    }
-
-    // 3. Detectar si dos etiquetas ocuparían el mismo espacio.
-    function overlaps(a, b) {
-      const gap = 3;
-
-      return !(
-        a.right + gap <= b.left ||
-        a.left >= b.right + gap ||
-        a.bottom + gap <= b.top ||
-        a.top >= b.bottom + gap
-      );
-    }
-
-    // 4. Buscar una ubicación libre para cada etiqueta.
-    pendingLabels.forEach((item) => {
-      let chosen = null;
-      let best = null;
-      let bestCollisionCount = Infinity;
-
-      for (const candidate of item.candidates) {
-        const rect = makeRect(item, candidate);
-
-        // No colocar etiquetas fuera del área visible de la gráfica.
-        if (
-          rect.top < chartArea.top + 1 ||
-          rect.bottom > chartArea.bottom - 1
-        ) continue;
-
-        const collisions = placedRects.reduce(
-          (count, placed) =>
-            count + (overlaps(rect, placed) ? 1 : 0),
-          0
-        );
-
-        // Preferir siempre una posición sin superposiciones.
-        if (collisions === 0) {
-          chosen = rect;
-          break;
+        // Último recurso para una barra alta: probar el interior una vez más.
+        if (!item.isLine && item.barHeight >= item.fontSize * 1.3 + 10) {
+          for (let y = item.point.y + 4; y <= item.baseY - item.fontSize * 1.3 - 3; y += verticalStep) {
+            candidates.push({ xOffset: 0, y, baseline: 'top', inside: true });
+          }
         }
-
-        // Si no hay una posición perfecta, conservar la menos conflictiva.
-        if (collisions < bestCollisionCount) {
-          best = rect;
-          bestCollisionCount = collisions;
-        }
+        return candidates;
       }
 
-      chosen = chosen || best;
+      // Recopilar las etiquetas antes de dibujarlas: primero las barras,
+      // luego las líneas, para que una cifra de la línea no tape la de una barra.
+      data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden || dataset.hidden || !Array.isArray(meta.data)) return;
 
-      if (!chosen) return;
+        const isLine = meta.type === 'line' || dataset.type === 'line';
+        const slotWidth = chartArea.width / (
+          labelCount * Math.max(1, isLine ? 1 : visibleBars)
+        );
+        const maxTextWidth = Math.max(28, slotWidth * 0.92);
 
-      item.position = chosen;
-      placedRects.push(chosen);
-    });
+        meta.data.forEach((element, index) => {
+          const rawValue = dataset.data[index];
+          if (rawValue == null || rawValue === '' || !Number.isFinite(Number(rawValue))) return;
 
-    // 5. Dibujar las etiquetas con contorno blanco para facilitar
-    // su lectura y conservarlas en la exportación del gráfico.
-    pendingLabels.forEach((item) => {
-      const position = item.position;
+          const value = Number(rawValue);
+          const point = element.getProps
+            ? element.getProps(['x', 'y'], true)
+            : element;
+          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
 
-      if (!position) return;
+          const baseY = !isLine && Number.isFinite(element.base)
+            ? element.base
+            : chartArea.bottom;
+          const fit = fittedLabel(value, maxTextWidth);
+          const item = {
+            x: point.x,
+            point,
+            baseY,
+            barHeight: Math.abs(baseY - point.y),
+            value,
+            label: fit.label,
+            fontSize: fit.fontSize,
+            width: fit.width,
+            maxTextWidth,
+            isLine,
+            datasetIndex
+          };
+          item.candidates = makeCandidates(item);
+          pendingLabels.push(item);
+        });
+      });
 
-      ctx.font = `600 ${item.fontSize}px Arial, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = position.baseline;
-      ctx.lineWidth = 3;
+      pendingLabels.sort((a, b) => Number(a.isLine) - Number(b.isLine) || a.datasetIndex - b.datasetIndex);
+      const placedRects = [];
 
-if (item.isLine) {
-  // Etiquetas de línea: azul oscuro con contorno blanco.
-  ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = '#087ca8';
-} else if (position.baseline === 'top') {
-  // Etiquetas dentro de las barras: blancas con borde azul.
-  ctx.strokeStyle = '#3549a8';
-  ctx.fillStyle = '#ffffff';
-} else {
-  // Valores cero o barras pequeñas.
-  ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = '#252b3a';
-}
-      ctx.strokeText(
-        item.label,
-        position.x,
-        position.y
-      );
+      function makeRect(item, candidate) {
+        const height = item.fontSize * 1.28;
+        const wantedX = item.x + (candidate.xOffset || 0);
+        const minX = item.width / 2 + 3;
+        const maxX = canvasWidth - item.width / 2 - 3;
+        const drawX = minX <= maxX
+          ? Math.max(minX, Math.min(maxX, wantedX))
+          : canvasWidth / 2;
+        const top = candidate.baseline === 'top'
+          ? candidate.y - 1
+          : candidate.y - height - 1;
+        const bottom = candidate.baseline === 'top'
+          ? candidate.y + height + 1
+          : candidate.y + 2;
 
-      ctx.fillText(
-        item.label,
-        position.x,
-        position.y
-      );
-    });
+        return {
+          x: drawX,
+          y: candidate.y,
+          baseline: candidate.baseline,
+          inside: Boolean(candidate.inside),
+          left: drawX - item.width / 2 - 2,
+          right: drawX + item.width / 2 + 2,
+          top,
+          bottom
+        };
+      }
 
-    ctx.restore();
-  }
-  
-};
+      function overlaps(a, b) {
+        const gap = 3;
+        return !(
+          a.right + gap <= b.left ||
+          a.left >= b.right + gap ||
+          a.bottom + gap <= b.top ||
+          a.top >= b.bottom + gap
+        );
+      }
+
+      function findPosition(item) {
+        for (const candidate of item.candidates) {
+          const rect = makeRect(item, candidate);
+          // Se permite utilizar el margen superior reservado del canvas, pero
+          // nunca se dibuja fuera del canvas, sobre el eje X o sobre la leyenda.
+          if (rect.top < 2 || rect.left < 2 || rect.right > canvasWidth - 2) continue;
+          if (rect.bottom > maxLabelBottom) continue;
+          if (placedRects.some((placed) => overlaps(rect, placed))) continue;
+          return rect;
+        }
+        return null;
+      }
+
+      pendingLabels.forEach((item) => {
+        let chosen = findPosition(item);
+
+        // Si no cabe el valor completo sin cruzarse, acortar y volver a buscar.
+        if (!chosen) {
+          const compact = compactDataLabel(item.value, true);
+          if (compact && compact !== item.label) {
+            item.label = compact;
+            for (let size = Math.min(item.fontSize, 11); size >= 8; size -= 1) {
+              item.fontSize = size;
+              setFont(size);
+              item.width = ctx.measureText(item.label).width;
+              item.candidates = makeCandidates(item);
+              chosen = findPosition(item);
+              if (chosen) break;
+            }
+          }
+        }
+
+        // No se coloca una cifra en una posición que ya esté ocupada.
+        // Los múltiples niveles y desplazamientos permiten conservar las etiquetas
+        // en las gráficas normales de 1 a 12 meses sin recortarlas en el margen superior.
+        if (!chosen) return;
+        item.position = chosen;
+        placedRects.push(chosen);
+      });
+
+      pendingLabels.forEach((item) => {
+        const position = item.position;
+        if (!position) return;
+
+        setFont(item.fontSize);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = position.baseline;
+        ctx.lineWidth = 3;
+        if (item.isLine) {
+          ctx.strokeStyle = '#ffffff';
+          ctx.fillStyle = '#087ca8';
+        } else if (position.inside) {
+          ctx.strokeStyle = '#3549a8';
+          ctx.fillStyle = '#ffffff';
+        } else {
+          ctx.strokeStyle = '#ffffff';
+          ctx.fillStyle = '#26366f';
+        }
+        ctx.strokeText(item.label, position.x, position.y);
+        ctx.fillText(item.label, position.x, position.y);
+      });
+
+      ctx.restore();
+    }
+  };
+
+  // Leyenda inferior: series de barras primero (azul oscuro), líneas después
+  // (azul claro). Se dibuja en el propio canvas y también se incluye en el PDF.
+  const jerLegendFooter = {
+    id: 'jerLegendFooter',
+
+    afterDraw(chart) {
+      if (!chart || !chart.ctx || !chart.data || !chart.data.datasets) return;
+      const ctx = chart.ctx;
+      const items = chart.data.datasets.map((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden || dataset.hidden) return null;
+        const isLine = meta.type === 'line' || dataset.type === 'line';
+        let rawColor = isLine ? dataset.borderColor : dataset.backgroundColor;
+        if (Array.isArray(rawColor)) rawColor = rawColor[0];
+        return {
+          label: String(dataset.label || 'Serie'),
+          color: rawColor || (isLine ? '#55a9d6' : '#3549a8'),
+          isLine,
+          datasetIndex
+        };
+      }).filter(Boolean).sort((a, b) => Number(a.isLine) - Number(b.isLine) || a.datasetIndex - b.datasetIndex);
+
+      // Las gráficas de una sola serie no necesitan leyenda de comparación.
+      if (items.length < 2) return;
+
+      const rowHeight = 15;
+      const fontSize = chart.width < 400 ? 8 : 9;
+      const startY = chart.height - items.length * rowHeight - 1;
+      ctx.save();
+      ctx.font = `600 ${fontSize}px Arial, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+
+      items.forEach((item, index) => {
+        const y = startY + index * rowHeight + rowHeight / 2;
+        const swatchWidth = 14;
+        const gap = 6;
+        let label = item.label;
+        const maxTextWidth = Math.max(35, chart.width - 48);
+        while (label.length > 5 && ctx.measureText(label).width + swatchWidth + gap > maxTextWidth) {
+          label = label.slice(0, -2).trimEnd() + '…';
+        }
+        const totalWidth = swatchWidth + gap + ctx.measureText(label).width;
+        const x = Math.max(8, (chart.width - totalWidth) / 2);
+
+        if (item.isLine) {
+          ctx.strokeStyle = item.color;
+          ctx.fillStyle = item.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 12, y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(x + 6, y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = item.color;
+          ctx.fillRect(x + 2, y - 4, 9, 8);
+        }
+
+        ctx.fillStyle = '#343a49';
+        ctx.fillText(label, x + swatchWidth + gap, y);
+      });
+      ctx.restore();
+    }
+  };
 
   function compactDataLabel(value, veryCompact) {
     const abs = Math.abs(value);
@@ -461,7 +507,7 @@ if (item.isLine) {
       },
       y: {
         beginAtZero: true,
-        grace: '18%',
+        grace: '22%',
         position: 'left',
         grid: { color: '#e6e8ef' },
         ticks: { color: '#555c6e', font: { size: 9 }, callback: compactNumber }
@@ -470,7 +516,7 @@ if (item.isLine) {
     if (!grouped && model.seriesIndices.length > 1) {
       scales.y1 = {
         beginAtZero: true,
-        grace: '18%',
+        grace: '22%',
         position: 'right',
         grid: { drawOnChartArea: false },
         ticks: { color: '#555c6e', font: { size: 9 }, callback: compactNumber }
@@ -481,8 +527,16 @@ if (item.isLine) {
       type: 'bar', data: { labels, datasets: series },
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
-        // Espacio adicional arriba para que los valores no queden cortados.
-        layout: { padding: { top: 20, left: 3, right: 3 } },
+        // Espacio fijo arriba para etiquetas y abajo para la leyenda propia.
+        // Es parte del tamaño del canvas, no depende del tamaño del monitor.
+        layout: {
+          padding: {
+            top: 44,
+            bottom: series.length > 1 ? (series.length * 15 + 8) : 6,
+            left: 3,
+            right: 3
+          }
+        },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false, position: 'top', labels: { boxWidth: 10, boxHeight: 8, padding: 10, font: { size: 9 } } },
@@ -490,7 +544,7 @@ if (item.isLine) {
         },
         scales
       },
-      plugins: [chartDataLabels]
+      plugins: [chartDataLabels, jerLegendFooter]
     });
     charts.push(instance);
   }
@@ -634,7 +688,8 @@ if (item.isLine) {
     const indices = headers.map((_, i) => i).filter((i) => i !== yearIndex(headers));
     const rows = ds.rows || [];
     const sectionLabel = tableTitle || title;
-    const detailPages = [];
+    const PAGE_SIZE = 18; // Límite fijo para que el orden no dependa del monitor.
+    const chunks = [];
 
     if (!indices.length) {
       const { body } = createPage(title, 'general-table-page');
@@ -642,102 +697,23 @@ if (item.isLine) {
       return;
     }
 
-    // Crea una página de detalle vacía. Las filas se agregan una a una y
-    // se mide el espacio real disponible; ya no se usa detailRowsPerPage.
-    function createDetailPage() {
-      const { page, body } = createPage(title, 'general-table-page');
-      let tableHtml = '<table class="data-table"><thead><tr>';
-      indices.forEach((idx) => {
-        tableHtml += '<th>' + esc(prettyHeader(headers[idx])) + '</th>';
-      });
-      tableHtml += '</tr></thead><tbody></tbody></table>';
-      body.innerHTML = '<p class="detail-intro"></p><div class="detail-table-wrap">' + tableHtml + '</div>';
-      const detailPage = {
-        page,
-        body,
-        intro: body.querySelector('.detail-intro'),
-        tbody: body.querySelector('tbody'),
-        rowCount: 0
-      };
-      updateDetailIntro(detailPage);
-      detailPages.push(detailPage);
-      return detailPage;
+    for (let i = 0; i < rows.length; i += PAGE_SIZE) {
+      chunks.push(rows.slice(i, i + PAGE_SIZE));
     }
+    if (!chunks.length) chunks.push([]);
 
-    function updateDetailIntro(detailPage) {
-      detailPage.intro.textContent = sectionLabel + ' · ' + detailPage.rowCount + ' registro(s) en esta página.';
-    }
-
-    function appendDataRow(tbody, row) {
-      const tr = document.createElement('tr');
-      indices.forEach((idx) => {
-        const td = document.createElement('td');
-        const value = formatCell(row[idx], headers[idx]);
-        td.title = String(value == null ? '' : value);
-        td.textContent = String(value == null ? '' : value);
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-      return tr;
-    }
-
-    function exceedsUsablePageHeight(detailPage) {
-      const lastRow = detailPage.tbody.lastElementChild;
-      if (!lastRow) return false;
-
-      const bodyRect = detailPage.body.getBoundingClientRect();
-      const lastRowRect = lastRow.getBoundingClientRect();
-      const style = window.getComputedStyle(detailPage.body);
-      const scaleY = detailPage.body.offsetHeight
-        ? bodyRect.height / detailPage.body.offsetHeight
-        : 1;
-      const paddingBottom = (parseFloat(style.paddingBottom) || 27) * scaleY;
-      // Mantiene libre el pie de página y el padding inferior del informe.
-      const usableBottom = bodyRect.bottom - paddingBottom - 2 * scaleY;
-
-      return lastRowRect.bottom > usableBottom;
-    }
-
-    let current = createDetailPage();
-
-    if (!rows.length) {
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.className = 'empty-cell';
-      td.colSpan = indices.length;
-      td.textContent = 'Sin registros para el período seleccionado.';
-      tr.appendChild(td);
-      current.tbody.appendChild(tr);
-    } else {
-      rows.forEach((row) => {
-        const addedRow = appendDataRow(current.tbody, row);
-        current.rowCount += 1;
-        updateDetailIntro(current);
-
-        // Si la fila nueva desborda y ya había otras filas, muévela a una
-        // página siguiente. Una fila individual muy larga se conserva para
-        // evitar ciclos y no perder el registro.
-        if (current.rowCount > 1 && exceedsUsablePageHeight(current)) {
-          current.tbody.removeChild(addedRow);
-          current.rowCount -= 1;
-          updateDetailIntro(current);
-
-          current = createDetailPage();
-          appendDataRow(current.tbody, row);
-          current.rowCount = 1;
-          updateDetailIntro(current);
-        }
-      });
-    }
-
-    // Solo se rotulan las páginas como continuación si realmente se necesitan
-    // dos o más páginas para esta misma sección.
-    if (detailPages.length > 1) {
-      detailPages.forEach((detailPage, index) => {
-        const heading = detailPage.page.querySelector('.page-header h1');
-        if (heading) heading.textContent = title + ' · CONTINUACIÓN ' + (index + 1);
-      });
-    }
+    chunks.forEach((chunk, chunkIndex) => {
+      // La primera página usa el título normal; las siguientes continúan en orden.
+      const pageTitle = chunkIndex === 0
+        ? title
+        : title + ' · CONTINUACIÓN ' + chunkIndex;
+      const { body } = createPage(pageTitle, 'general-table-page');
+      const singleChunk = { headers, rows: chunk };
+      body.innerHTML =
+        '<p class="detail-intro">' + esc(sectionLabel) + ' · ' + chunk.length +
+        ' registro(s) en esta página.</p><div class="detail-table-wrap">' +
+        createTable(singleChunk, { indices }) + '</div>';
+    });
   }
 
   function renderDetailPair(item) {
