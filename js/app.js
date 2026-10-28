@@ -24,7 +24,7 @@
       const labelCount = Math.max(1, data.labels.length);
       const baseFontSize = labelCount >= 10 ? 12 : (labelCount >= 7 ? 13 : 15);
       const legendHeight = visibleDatasets.length > 1
-        ? visibleDatasets.length * 15 + 6
+        ? visibleDatasets.length * 18 + 20
         : 0;
       // No dibujar etiquetas sobre las marcas del eje X ni dentro de la leyenda.
       const maxLabelBottom = Math.min(
@@ -73,13 +73,13 @@
 
       function makeCandidates(item) {
         const candidates = [];
-        const verticalStep = Math.max(14, Math.ceil(item.fontSize * 1.35));
+        const verticalStep = Math.max(16, Math.ceil(item.fontSize * 1.4));
         const horizontalOffsets = [0, -8, 8, -16, 16, -24, 24, -32, 32];
 
         if (!item.isLine && item.barHeight >= item.fontSize * 1.3 + 10) {
-          // Las etiquetas de las barras se colocan dentro de la barra, en blanco.
-          // Si chocan con otra etiqueta, prueban niveles más bajos dentro de la barra.
-          const maxInsideY = item.baseY - item.fontSize * 1.3 - 3;
+          // Las etiquetas de barras altas se prueban dentro de la barra,
+          // empezando cerca del borde superior y descendiendo si hay conflicto.
+          const maxInsideY = item.baseY - item.fontSize * 1.3 - 4;
           for (let y = item.point.y + 4; y <= maxInsideY; y += verticalStep) {
             [0, -8, 8, -16, 16].forEach((xOffset) => {
               candidates.push({ xOffset, y, baseline: 'top', inside: true });
@@ -87,9 +87,10 @@
           }
         }
 
-        // Las etiquetas de líneas y los valores pequeños/ceros de barras se
-        // prueban por encima de su punto/barra, usando primero la posición más cercana.
-        for (let distance = 6; distance <= canvasHeight + 30; distance += verticalStep) {
+        // Primera opción para puntos de línea (y barras pequeñas/cero):
+        // etiqueta por encima. Se prueban niveles progresivos y pequeños
+        // desplazamientos horizontales para evitar choques entre series.
+        for (let distance = Math.max(8, item.fontSize * 1.1); distance <= canvasHeight; distance += verticalStep) {
           horizontalOffsets.forEach((xOffset) => {
             candidates.push({
               xOffset,
@@ -100,9 +101,28 @@
           });
         }
 
-        // Último recurso para una barra alta: probar el interior una vez más.
+        if (item.isLine) {
+          // Respaldo para el punto más alto: si no cabe ninguna etiqueta arriba,
+          // probar debajo del punto dentro del área trazada. Esto evita que el
+          // valor desaparezca por quedar fuera del canvas o del margen superior.
+          const belowOffsets = [0, -12, 12, -22, 22, -30, 30];
+          for (let distance = 8; distance <= Math.min(canvasHeight, 120); distance += verticalStep) {
+            belowOffsets.forEach((xOffset) => {
+              candidates.push({
+                xOffset,
+                y: item.point.y + distance,
+                baseline: 'top',
+                inside: false
+              });
+            });
+          }
+        }
+
+        // Última alternativa para las barras altas: volver a probar dentro,
+        // incluyendo posiciones más bajas si varias etiquetas coinciden.
         if (!item.isLine && item.barHeight >= item.fontSize * 1.3 + 10) {
-          for (let y = item.point.y + 4; y <= item.baseY - item.fontSize * 1.3 - 3; y += verticalStep) {
+          const maxInsideY = item.baseY - item.fontSize * 1.3 - 4;
+          for (let y = item.point.y + 4; y <= maxInsideY; y += verticalStep) {
             candidates.push({ xOffset: 0, y, baseline: 'top', inside: true });
           }
         }
@@ -211,23 +231,23 @@
 
         // Si no cabe el valor completo sin cruzarse, acortar y volver a buscar.
         if (!chosen) {
+          // Reintentar con etiqueta compacta y reducir la fuente de forma gradual.
+          // La estrategia también incluye posiciones debajo del punto para valores
+          // cerca del borde superior, sin dibujar fuera del canvas.
           const compact = compactDataLabel(item.value, true);
-          if (compact && compact !== item.label) {
-            item.label = compact;
-            for (let size = Math.min(item.fontSize, 11); size >= 8; size -= 1) {
-              item.fontSize = size;
-              setFont(size);
-              item.width = ctx.measureText(item.label).width;
-              item.candidates = makeCandidates(item);
-              chosen = findPosition(item);
-              if (chosen) break;
-            }
+          if (compact) item.label = compact;
+          for (let size = Math.min(item.fontSize, 11); size >= 8; size -= 1) {
+            item.fontSize = size;
+            setFont(size);
+            item.width = ctx.measureText(item.label).width;
+            item.candidates = makeCandidates(item);
+            chosen = findPosition(item);
+            if (chosen) break;
           }
         }
 
-        // No se coloca una cifra en una posición que ya esté ocupada.
-        // Los múltiples niveles y desplazamientos permiten conservar las etiquetas
-        // en las gráficas normales de 1 a 12 meses sin recortarlas en el margen superior.
+        // No se dibuja una etiqueta encima de otra: si hay conflicto se intenta
+        // recolocar o abreviar antes de omitirla, para preservar legibilidad.
         if (!chosen) return;
         item.position = chosen;
         placedRects.push(chosen);
@@ -275,7 +295,9 @@
         if (Array.isArray(rawColor)) rawColor = rawColor[0];
         return {
           label: String(dataset.label || 'Serie'),
-          color: rawColor || (isLine ? '#55a9d6' : '#3549a8'),
+          // La leyenda usa tonos coherentes con el diseño: barras azul oscuro,
+          // líneas azul claro. Se conserva la paleta de la serie si hay otros colores.
+          color: isLine ? '#55a9d6' : (rawColor || '#3549a8'),
           isLine,
           datasetIndex
         };
@@ -284,9 +306,10 @@
       // Las gráficas de una sola serie no necesitan leyenda de comparación.
       if (items.length < 2) return;
 
-      const rowHeight = 15;
+      const rowHeight = 18;
       const fontSize = chart.width < 400 ? 8 : 9;
-      const startY = chart.height - items.length * rowHeight - 1;
+      // Las filas se dibujan en el margen inferior reservado por buildChart.
+      const startY = chart.height - items.length * rowHeight - 3;
       ctx.save();
       ctx.font = `600 ${fontSize}px Arial, sans-serif`;
       ctx.textAlign = 'left';
@@ -507,7 +530,7 @@
       },
       y: {
         beginAtZero: true,
-        grace: '22%',
+        grace: '30%',
         position: 'left',
         grid: { color: '#e6e8ef' },
         ticks: { color: '#555c6e', font: { size: 9 }, callback: compactNumber }
@@ -516,7 +539,7 @@
     if (!grouped && model.seriesIndices.length > 1) {
       scales.y1 = {
         beginAtZero: true,
-        grace: '22%',
+        grace: '30%',
         position: 'right',
         grid: { drawOnChartArea: false },
         ticks: { color: '#555c6e', font: { size: 9 }, callback: compactNumber }
@@ -531,8 +554,8 @@
         // Es parte del tamaño del canvas, no depende del tamaño del monitor.
         layout: {
           padding: {
-            top: 44,
-            bottom: series.length > 1 ? (series.length * 15 + 8) : 6,
+            top: 62,
+            bottom: series.length > 1 ? (series.length * 18 + 20) : 8,
             left: 3,
             right: 3
           }
