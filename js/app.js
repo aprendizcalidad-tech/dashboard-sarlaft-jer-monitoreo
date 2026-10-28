@@ -94,32 +94,43 @@
         const candidates = [];
 
         if (isLine) {
-  // Las etiquetas de las líneas se colocan ENCIMA de sus puntos.
-  // Si coinciden con etiquetas de barras, prueban otras posiciones.
+  // Números de la línea: siempre encima del punto.
+  // Se desplazan hacia arriba si hay otra etiqueta cerca.
+  const distances = [10, 25, 40, 55, 70, 85];
 
-  const verticalOffsets = [5, 20, 35, 50, 65];
-  const horizontalOffsets = [0, -20, 20, -32, 32];
+  distances.forEach((distance) => {
+    candidates.push({
+      xOffset: 0,
+      y: point.y - distance,
+      baseline: 'bottom'
+    });
+  });
 
-  verticalOffsets.forEach((distance) => {
-    horizontalOffsets.forEach((xOffset) => {
+} else {
+  // Números de las barras: dentro de la barra.
+  const baseY = Number.isFinite(element.base)
+    ? element.base
+    : chartArea.bottom;
+
+  const barHeight = Math.abs(baseY - point.y);
+  const textHeight = fontSize * 1.3;
+
+  if (value !== 0 && barHeight >= textHeight + 8) {
+    candidates.push({
+      xOffset: 0,
+      y: point.y + 5,
+      baseline: 'top'
+    });
+  } else {
+    // Para barras pequeñas o de valor cero, colocar el número encima.
+    [8, 22, 36].forEach((distance) => {
       candidates.push({
-        xOffset,
+        xOffset: 0,
         y: point.y - distance,
         baseline: 'bottom'
       });
     });
-  });
-        } else {
-          // Las barras tienen prioridad: empezar encima de cada barra
-          // y buscar alturas alternativas si hay otra etiqueta allí.
-          for (let level = 0; level < 10; level++) {
-            candidates.push({
-              xOffset: 0,
-              y: point.y - 4 - level * (fontSize + 4),
-              baseline: 'bottom'
-            });
-          }
-
+  }
           // Última alternativa: dentro de la barra.
           candidates.push({
             xOffset: 0,
@@ -238,9 +249,20 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = position.baseline;
       ctx.lineWidth = 3;
-      ctx.strokeStyle = '#ffffff';
-      ctx.fillStyle = '#252b3a';
 
+if (item.isLine) {
+  // Etiquetas de línea: azul oscuro con contorno blanco.
+  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = '#087ca8';
+} else if (position.baseline === 'top') {
+  // Etiquetas dentro de las barras: blancas con borde azul.
+  ctx.strokeStyle = '#3549a8';
+  ctx.fillStyle = '#ffffff';
+} else {
+  // Valores cero o barras pequeñas.
+  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = '#252b3a';
+}
       ctx.strokeText(
         item.label,
         position.x,
@@ -438,6 +460,7 @@
       },
       y: {
         beginAtZero: true,
+        grace: '18%',
         position: 'left',
         grid: { color: '#e6e8ef' },
         ticks: { color: '#555c6e', font: { size: 9 }, callback: compactNumber }
@@ -446,6 +469,7 @@
     if (!grouped && model.seriesIndices.length > 1) {
       scales.y1 = {
         beginAtZero: true,
+        grace: '18%',
         position: 'right',
         grid: { drawOnChartArea: false },
         ticks: { color: '#555c6e', font: { size: 9 }, callback: compactNumber }
