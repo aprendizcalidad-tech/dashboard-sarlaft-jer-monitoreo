@@ -5,68 +5,280 @@
   const PALETTE = ['#3549a8', '#55a9d6', '#d83b43', '#7a88c9'];
   const charts = [];
   const chartDataLabels = {
-    id: 'jerVisibleDataLabels',
-    afterDatasetsDraw(chart) {
-      if (!chart || !chart.chartArea || !chart.data || !chart.data.labels) return;
-      const { ctx, chartArea, data } = chart;
-      const visibleBars = data.datasets.reduce((total, dataset, index) => {
-        const meta = chart.getDatasetMeta(index);
-        return total + (meta && !meta.hidden && meta.type === 'bar' ? 1 : 0);
-      }, 0);
-      const labelCount = Math.max(1, data.labels.length);
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.lineJoin = 'round';
-      data.datasets.forEach((dataset, datasetIndex) => {
-        const meta = chart.getDatasetMeta(datasetIndex);
-        if (!meta || meta.hidden || dataset.hidden || !Array.isArray(meta.data)) return;
-        const isLine = meta.type === 'line' || dataset.type === 'line';
-        const slots = chartArea.width / (labelCount * Math.max(1, isLine ? 1 : visibleBars));
-        const fontSize = data.labels.length >= 10 || visibleBars > 1 ? 13 : 15;
-        ctx.font = '600 ' + fontSize + 'px Arial, sans-serif';
-        meta.data.forEach((element, index) => {
-          const rawValue = dataset.data[index];
-          if (rawValue == null || rawValue === '' || !Number.isFinite(Number(rawValue))) return;
-          const value = Number(rawValue);
-          const fullLabel = formatNumber(value);
-          let label = fullLabel;
-          const maxTextWidth = Math.max(20, slots * 0.92);
-          if (ctx.measureText(label).width > maxTextWidth) {
-            label = compactDataLabel(value);
+  id: 'jerVisibleDataLabels',
+
+  afterDatasetsDraw(chart) {
+    if (!chart || !chart.chartArea || !chart.data || !chart.data.labels) return;
+
+    const { ctx, chartArea, data } = chart;
+
+    const visibleBars = data.datasets.reduce((total, dataset, index) => {
+      const meta = chart.getDatasetMeta(index);
+      return total + (
+        meta && !meta.hidden && meta.type === 'bar' ? 1 : 0
+      );
+    }, 0);
+
+    const labelCount = Math.max(1, data.labels.length);
+    const baseFontSize =
+      data.labels.length >= 10 || visibleBars > 1 ? 13 : 15;
+
+    const pendingLabels = [];
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+
+    // 1. Recopilar todas las etiquetas de las barras y las líneas.
+    data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+
+      if (
+        !meta ||
+        meta.hidden ||
+        dataset.hidden ||
+        !Array.isArray(meta.data)
+      ) return;
+
+      const isLine = meta.type === 'line' || dataset.type === 'line';
+
+      const slots = chartArea.width /
+        (
+          labelCount *
+          Math.max(1, isLine ? 1 : visibleBars)
+        );
+
+      meta.data.forEach((element, index) => {
+        const rawValue = dataset.data[index];
+
+        if (
+          rawValue == null ||
+          rawValue === '' ||
+          !Number.isFinite(Number(rawValue))
+        ) return;
+
+        const value = Number(rawValue);
+        let label = formatNumber(value);
+        let fontSize = baseFontSize;
+
+        const maxTextWidth = Math.max(28, slots * 0.92);
+
+        ctx.font = `600 ${fontSize}px Arial, sans-serif`;
+
+        // Intentar mostrar el valor completo.
+        if (ctx.measureText(label).width > maxTextWidth) {
+          label = compactDataLabel(value);
+        }
+
+        // Reducir ligeramente la letra solo si es necesario.
+        if (ctx.measureText(label).width > maxTextWidth) {
+          fontSize = Math.max(11, baseFontSize - 2);
+          ctx.font = `600 ${fontSize}px Arial, sans-serif`;
+        }
+
+        // Abreviar como último recurso.
+        if (ctx.measureText(label).width > maxTextWidth) {
+          label = compactDataLabel(value, true);
+        }
+
+        const point = element.getProps
+          ? element.getProps(['x', 'y'], true)
+          : element;
+
+        if (
+          !point ||
+          !Number.isFinite(point.x) ||
+          !Number.isFinite(point.y)
+        ) return;
+
+        const candidates = [];
+
+        if (isLine) {
+          // Las etiquetas de línea prueban debajo y encima del punto,
+          // alejándose progresivamente de las etiquetas ya colocadas.
+          for (let level = 0; level < 10; level++) {
+            const distance = 8 + level * (fontSize + 4);
+
+            candidates.push({
+              xOffset: 0,
+              y: point.y + distance,
+              baseline: 'top'
+            });
+
+            candidates.push({
+              xOffset: 0,
+              y: point.y - distance,
+              baseline: 'bottom'
+            });
           }
-          if (ctx.measureText(label).width > maxTextWidth) {
-            const reduced = Math.max(11, fontSize - 2);
-            ctx.font = '600 ' + reduced + 'px Arial, sans-serif';
-            if (ctx.measureText(label).width > maxTextWidth) label = compactDataLabel(value, true);
+
+          // Si el espacio vertical es limitado, probar pequeños
+          // desplazamientos laterales.
+          for (let level = 0; level < 4; level++) {
+            const distance = 8 + level * (fontSize + 4);
+
+            [-9, 9].forEach((xOffset) => {
+              candidates.push({
+                xOffset,
+                y: point.y + distance,
+                baseline: 'top'
+              });
+
+              candidates.push({
+                xOffset,
+                y: point.y - distance,
+                baseline: 'bottom'
+              });
+            });
           }
-          const point = element.getProps ? element.getProps(['x', 'y'], true) : element;
-          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
-          let y = point.y;
-          let baseline = 'bottom';
-          if (isLine) {
-            // Colocar el valor debajo del punto evita que choque con la etiqueta de la barra.
-            y = point.y + 12;
-            baseline = 'top';
-            if (y + 8 > chartArea.bottom - 1) {
-              y = point.y - 7;
-              baseline = 'bottom';
-            }
-          } else {
-            y = point.y - 4;
+        } else {
+          // Las barras tienen prioridad: empezar encima de cada barra
+          // y buscar alturas alternativas si hay otra etiqueta allí.
+          for (let level = 0; level < 10; level++) {
+            candidates.push({
+              xOffset: 0,
+              y: point.y - 4 - level * (fontSize + 4),
+              baseline: 'bottom'
+            });
           }
-          // El contorno blanco mejora la lectura y también queda incorporado en el PDF.
-          ctx.textBaseline = baseline;
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = '#ffffff';
-          ctx.fillStyle = '#252b3a';
-          ctx.strokeText(label, point.x, y);
-          ctx.fillText(label, point.x, y);
-          ctx.font = '600 ' + fontSize + 'px Arial, sans-serif';
+
+          // Última alternativa: dentro de la barra.
+          candidates.push({
+            xOffset: 0,
+            y: point.y + 4,
+            baseline: 'top'
+          });
+        }
+
+        pendingLabels.push({
+          x: point.x,
+          label,
+          fontSize,
+          width: ctx.measureText(label).width,
+          isLine,
+          candidates
         });
       });
-      ctx.restore();
+    });
+
+    // 2. Dibujar primero las etiquetas de las barras.
+    // Las de las líneas buscarán una posición que no las tape.
+    pendingLabels.sort(
+      (a, b) => Number(a.isLine) - Number(b.isLine)
+    );
+
+    const placedRects = [];
+
+    function makeRect(item, candidate) {
+      const height = item.fontSize * 1.3;
+      const wantedX = item.x + (candidate.xOffset || 0);
+
+      const minX = chartArea.left + item.width / 2 + 2;
+      const maxX = chartArea.right - item.width / 2 - 2;
+
+      const drawX = minX <= maxX
+        ? Math.max(minX, Math.min(maxX, wantedX))
+        : (chartArea.left + chartArea.right) / 2;
+
+      const textTop = candidate.baseline === 'top'
+        ? candidate.y
+        : candidate.y - height;
+
+      return {
+        x: drawX,
+        y: candidate.y,
+        baseline: candidate.baseline,
+        left: drawX - item.width / 2 - 2,
+        right: drawX + item.width / 2 + 2,
+        top: textTop - 2,
+        bottom: textTop + height + 2
+      };
     }
-  };
+
+    // 3. Detectar si dos etiquetas ocuparían el mismo espacio.
+    function overlaps(a, b) {
+      const gap = 3;
+
+      return !(
+        a.right + gap <= b.left ||
+        a.left >= b.right + gap ||
+        a.bottom + gap <= b.top ||
+        a.top >= b.bottom + gap
+      );
+    }
+
+    // 4. Buscar una ubicación libre para cada etiqueta.
+    pendingLabels.forEach((item) => {
+      let chosen = null;
+      let best = null;
+      let bestCollisionCount = Infinity;
+
+      for (const candidate of item.candidates) {
+        const rect = makeRect(item, candidate);
+
+        // No colocar etiquetas fuera del área visible de la gráfica.
+        if (
+          rect.top < chartArea.top + 1 ||
+          rect.bottom > chartArea.bottom - 1
+        ) continue;
+
+        const collisions = placedRects.reduce(
+          (count, placed) =>
+            count + (overlaps(rect, placed) ? 1 : 0),
+          0
+        );
+
+        // Preferir siempre una posición sin superposiciones.
+        if (collisions === 0) {
+          chosen = rect;
+          break;
+        }
+
+        // Si no hay una posición perfecta, conservar la menos conflictiva.
+        if (collisions < bestCollisionCount) {
+          best = rect;
+          bestCollisionCount = collisions;
+        }
+      }
+
+      chosen = chosen || best;
+
+      if (!chosen) return;
+
+      item.position = chosen;
+      placedRects.push(chosen);
+    });
+
+    // 5. Dibujar las etiquetas con contorno blanco para facilitar
+    // su lectura y conservarlas en la exportación del gráfico.
+    pendingLabels.forEach((item) => {
+      const position = item.position;
+
+      if (!position) return;
+
+      ctx.font = `600 ${item.fontSize}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = position.baseline;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#252b3a';
+
+      ctx.strokeText(
+        item.label,
+        position.x,
+        position.y
+      );
+
+      ctx.fillText(
+        item.label,
+        position.x,
+        position.y
+      );
+    });
+
+    ctx.restore();
+  }
+};
 
   function compactDataLabel(value, veryCompact) {
     const abs = Math.abs(value);
