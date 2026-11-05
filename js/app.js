@@ -468,7 +468,18 @@
         indices.forEach((idx) => {
           const header = headers[idx];
           const cell = formatCell(row[idx], header);
-          html += '<td title="' + esc(cell) + '">' + esc(cell) + '</td>';
+
+// Resaltar en rojo únicamente los resultados positivos de las columnas ROS.
+const isRosColumn = normalize(header).includes('ROS');
+const isPositiveRos =
+  isRosColumn && String(cell).trim().toUpperCase() === 'POSITIVO';
+
+const cellStyle = isPositiveRos
+  ? ' style="color: #dc2626; font-weight: 700;"'
+  : '';
+
+html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
+        esc(cell) + '</td>';
         });
         html += '</tr>';
       });
