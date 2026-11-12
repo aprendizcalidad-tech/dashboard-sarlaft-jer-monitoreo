@@ -3,7 +3,7 @@
  * Después de desplegar Apps Script con la validación Firebase, pega su URL terminada en /exec en scriptUrl. El acceso a datos se envía por POST, no por JSONP.
  */
 const JER_CONFIG = {
-  scriptUrl: 'https://script.google.com/macros/s/AKfycbwLA-H_wxTrsTGQOfkI8dIqR-CD7uLDpxXjMxMcyk1wQlhGfafWSg79jSXQtq3BQv7jeg/exec',
+  scriptUrl: 'https://script.google.com/a/macros/jer.com.co/s/AKfycby8PY_OyUkiXWuEVMu5CScvT49lcNEhCCoIRalHJixqkd8ekheZkDU3GDkadjLDSsHvjQ/exec',
   defaultMonth: 'ALL',
   detailRowsPerPage: 10,
 
