@@ -420,7 +420,11 @@
   }
 
   function getDataset(name) {
-    return latestResponse && latestResponse.datasets ? latestResponse.datasets[name] : null;
+    const datasets = latestResponse && latestResponse.datasets;
+    if (!datasets) return null;
+    if (datasets[name]) return datasets[name];
+    const key = Object.keys(datasets).find((candidate) => normalize(candidate) === normalize(name));
+    return key ? datasets[key] : null;
   }
 
   function hasRows(dataset) {
@@ -430,10 +434,12 @@
   const mappedNewSheets = new Set();
 
   function resolveMetricDataset(metric) {
-    const names = [metric.sheet].concat(metric.aliases || []);
+    // Cuando la hoja regional se renombra, sus datos actuales prevalecen sobre
+    // la pestaña antigua si ambas siguen existiendo en el libro.
+    const names = (metric.aliases || []).concat(metric.sheet);
     const name = names.find((candidate) => hasRows(getDataset(candidate)));
     if (!name) return null;
-    if (name !== metric.sheet) mappedNewSheets.add(name);
+    (metric.aliases || []).forEach((alias) => mappedNewSheets.add(normalize(alias)));
     return getDataset(name);
   }
 
@@ -490,7 +496,8 @@
         html += '<tr>';
         indices.forEach((idx) => {
           const header = headers[idx];
-          const cell = formatCell(row[idx], header);
+          const cell = opts.zeroAsNegative && typeof row[idx] === 'number' && row[idx] === 0 &&
+            ['ENVIO', 'COBRO'].includes(normalize(header)) ? 'NEGATIVO' : formatCell(row[idx], header);
 
 // Resaltar en rojo únicamente los resultados positivos de las columnas ROS.
 const isRosColumn = normalize(header).includes('ROS');
@@ -680,7 +687,8 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
       const ds = getDataset(card.sheet);
       const el = document.createElement('section');
       el.className = 'general-card';
-      el.innerHTML = '<h2>' + esc(card.title) + '</h2><div class="card-content">' + createTable(ds) + '</div>';
+      el.innerHTML = '<h2>' + esc(card.title) + '</h2><div class="card-content">' +
+        createTable(ds, { zeroAsNegative: card.sheet === 'ROI' }) + '</div>';
       grid.appendChild(el);
     });
     body.appendChild(grid);
@@ -709,22 +717,38 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
     const { body } = createPage(item.title, 'paired-table-page');
     appendReportIntro(body, item.note);
     const ds = getDataset(item.sheet);
-    const model = getMetricModel({
-      title: 'TOTAL DE MONITOREOS', primaryIndex: 14, secondaryIndex: 19,
-      displayIndices: [1, 14, 15, 16, 17, 18, 19, 20]
-    }, ds);
-    const grid = document.createElement('div');
-    grid.className = 'general-two-col';
-    const left = document.createElement('section');
-    left.className = 'general-card';
-    left.innerHTML = '<h2>MONITOREO DE TERCEROS POR MES</h2><div class="card-content"><div class="chart-slot"><canvas></canvas></div></div>';
-    if (ds && model) buildChart(left.querySelector('canvas'), { primaryIndex: 14, secondaryIndex: 19 }, ds, model);
-    const right = document.createElement('section');
-    right.className = 'general-card';
-    right.innerHTML = '<h2>DETALLE DE MONITOREOS</h2><div class="card-content">' +
-      createTable(ds, { indices: [1, 14, 15, 16, 18, 19, 20] }) + '</div>';
-    grid.append(left, right);
-    body.appendChild(grid);
+    const headers = ds.headers || [];
+    const zoneTotal = headers.findIndex((header) => normalize(header).includes('TOTAL UAD'));
+    const monitorTotal = headers.findIndex((header) => normalize(header).includes('TOTAL MONITORE'));
+    // La hoja contiene dos grupos contiguos de columnas, separados por una
+    // columna vacía. Cada grupo conserva su tabla y su propio total mensual.
+    const zoneEnd = zoneTotal >= 0 ? zoneTotal : Math.min(14, headers.length - 1);
+    const monitorEnd = monitorTotal >= 0 ? monitorTotal : Math.min(20, headers.length - 1);
+    const zoneIndices = headers.map((header, index) => index)
+      .filter((index) => index >= 1 && index <= zoneEnd && normalize(headers[index]));
+    const monitorIndices = headers.map((header, index) => index)
+      .filter((index) => index === monthIndex(headers) ||
+        (index > zoneEnd && index <= monitorEnd && normalize(header)));
+
+    const sections = [
+      { title: 'DEBIDA DILIGENCIA ZONAS', chartTitle: 'TOTAL CONSULTAS POR MES',
+        indices: zoneIndices, totalIndex: zoneEnd, className: 'due-zones' },
+      { title: 'USUARIOS Y CLIENTES DE GIROS Y GANADORES DE PREMIOS',
+        chartTitle: 'TOTAL CONSULTAS MONITOREADAS', indices: monitorIndices,
+        totalIndex: monitorEnd, className: 'due-users' }
+    ];
+    sections.forEach((section) => {
+      if (section.indices.length < 2 || !section.indices.includes(section.totalIndex)) return;
+      const group = document.createElement('section');
+      group.className = 'due-section ' + section.className;
+      group.innerHTML = '<h2>' + esc(section.title) + '</h2><div class="due-layout">' +
+        '<div class="due-table-wrap">' + createTable(ds, { indices: section.indices }) + '</div>' +
+        '<div class="due-chart-wrap"><h3>' + esc(section.chartTitle) + '</h3>' +
+        '<div class="chart-slot"><canvas aria-label="' + esc(section.chartTitle) + '"></canvas></div></div></div>';
+      body.appendChild(group);
+      const metric = { seriesIndices: [section.totalIndex], displayIndices: section.indices };
+      buildChart(group.querySelector('canvas'), metric, ds, getMetricModel(metric, ds));
+    });
   }
 
   function renderTrainingDashboard(item) {
@@ -735,10 +759,20 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
     appendReportIntro(body, item.note);
     const stack = document.createElement('div');
     stack.className = 'metric-stack';
-    if (hasRows(cap)) stack.appendChild(renderMetricPanel({
-      title: 'CANTIDAD DE CAPACITACIONES POR MES', sheet: item.capSheet,
-      primaryIndex: 16, displayIndices: [1, 16]
-    }, cap));
+    if (hasRows(cap)) {
+      const totalIndex = (cap.headers || []).findIndex((header) => normalize(header) === 'TOTAL MES');
+      if (totalIndex >= 0) {
+        stack.appendChild(renderMetricPanel({
+          title: 'TOTAL DE CAPACITACIONES POR MES', sheet: item.capSheet,
+          seriesIndices: [totalIndex], displayIndices: [monthIndex(cap.headers), totalIndex].filter((idx) => idx >= 0)
+        }, cap));
+      } else {
+        const warning = document.createElement('p');
+        warning.className = 'page-note';
+        warning.textContent = 'Capacitaciones: falta la columna TOTAL MES en la hoja de origen. Revisa sus encabezados.';
+        stack.appendChild(warning);
+      }
+    }
     if (hasRows(inductions)) stack.appendChild(renderMetricPanel({
       title: 'INDUCCIONES POR MES', sheet: item.inductionSheet,
       seriesIndices: [2, 3], displayIndices: [1, 2, 3, 4]
@@ -815,7 +849,11 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
     names.forEach((entry) => {
       const sheetName = typeof entry === 'string' ? entry : entry.name;
       const ds = getDataset(sheetName);
-      if (!sheetName || !hasRows(ds) || mappedNewSheets.has(sheetName)) return;
+      if (!sheetName || !hasRows(ds) || mappedNewSheets.has(normalize(sheetName))) return;
+      // Los totales de toda JER son consolidados distintos de Boyacá/Amazonas.
+      // Este informe regional no incluye páginas automáticas de consolidados.
+      if (['TOTAL N. PERSONAS PREMIOS CHANCE JER',
+        'MONTOS TOTALES PREMIOS CHANCE JER'].includes(normalize(sheetName))) return;
       const mi = monthIndex(ds.headers || []);
       const numeric = numericColumns(ds);
       if (mi >= 0 && numeric.length && ds.rows.length <= 15) {
