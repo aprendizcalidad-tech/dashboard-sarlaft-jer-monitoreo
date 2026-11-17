@@ -398,7 +398,7 @@
 
   function formatCell(value, header) {
     if (value == null || value === '') return '—';
-    const h = normalize(header);
+    const h = normalize(headers[index]);
     if (typeof value === 'number') {
       if (h.includes('%') || h.includes('PORCENTAJE')) return formatPercent(value);
       return formatNumber(value);
