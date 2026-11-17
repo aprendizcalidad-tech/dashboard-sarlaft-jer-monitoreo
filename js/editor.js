@@ -312,6 +312,7 @@
     tag('.activity-list li', 'activity-item');
     tag('.narrative-box', 'narrative');
     tag('.page-note', 'page-note');
+    tag('.report-intro', 'report-intro');
     tag('.metric-heading', 'metric-heading');
     tag('.general-card h2', 'card-heading');
     tag('.detail-intro', 'detail-intro');
@@ -357,7 +358,16 @@
     const order = Array.isArray(state.pageOrder)
       ? state.pageOrder.filter((id) => ids.includes(id) && id !== closingId)
       : [];
-    ids.forEach((id) => { if (id !== closingId && !order.includes(id)) order.push(id); });
+    ids.forEach((id, index) => {
+      if (id === closingId || order.includes(id)) return;
+      const next = ids.slice(index + 1).find((candidate) => order.includes(candidate));
+      if (next) order.splice(order.indexOf(next), 0, id);
+      else {
+        const previous = ids.slice(0, index).reverse().find((candidate) => order.includes(candidate));
+        if (previous) order.splice(order.indexOf(previous) + 1, 0, id);
+        else order.push(id);
+      }
+    });
     if (closingId) order.push(closingId);
     state.pageOrder = order;
     order.forEach((id) => {
@@ -386,9 +396,37 @@
     root.querySelectorAll('.brand-mark img').forEach((image) => { image.src = logo; });
   }
 
+  function migrateLegacyPageState(page) {
+    const oldId = page.dataset.legacyPageId;
+    const newId = page.dataset.pageId;
+    if (!oldId || oldId === newId) return;
+    Object.keys(state.edits).filter((key) => key.startsWith(oldId + '|')).forEach((key) => {
+      const updated = newId + key.slice(oldId.length);
+      if (!(updated in state.edits)) state.edits[updated] = state.edits[key];
+      delete state.edits[key];
+    });
+    Object.keys(state.elementStyles).filter((key) => key.startsWith('edit:' + oldId + '|')).forEach((key) => {
+      const updated = 'edit:' + newId + key.slice(('edit:' + oldId).length);
+      if (!(updated in state.elementStyles)) state.elementStyles[updated] = state.elementStyles[key];
+      delete state.elementStyles[key];
+    });
+    state.deletedPages = state.deletedPages.map((id) => id === oldId ? newId : id);
+    state.pageOrder = state.pageOrder.map((id) => id === oldId ? newId : id);
+    state.customBlocks.forEach((block) => {
+      if (block.pageId !== oldId) return;
+      block.pageId = newId;
+      ['parentKey', 'beforeKey'].forEach((key) => {
+        if (typeof block[key] === 'string' && block[key].startsWith(oldId + '::')) {
+          block[key] = newId + block[key].slice(oldId.length);
+        }
+      });
+    });
+  }
+
   function decorateReport(reportRoot) {
     const existingPages = Array.from(reportRoot.querySelectorAll('.report-page'));
     state.deletedPages = Array.isArray(state.deletedPages) ? state.deletedPages : [];
+    existingPages.forEach(migrateLegacyPageState);
     existingPages.forEach((page) => {
       if (state.deletedPages.includes(page.dataset.pageId)) page.remove();
     });

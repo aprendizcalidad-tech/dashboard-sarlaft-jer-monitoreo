@@ -365,6 +365,7 @@
   const pdfButton = document.getElementById('download-pdf');
   let latestResponse = null;
   let pageKeyCounts = Object.create(null);
+  let legacyDetailKeys = Object.create(null);
   let dashboardLoading = false;
 
   function setStatus(message, kind) {
@@ -420,6 +421,28 @@
 
   function getDataset(name) {
     return latestResponse && latestResponse.datasets ? latestResponse.datasets[name] : null;
+  }
+
+  function hasRows(dataset) {
+    return Boolean(dataset && Array.isArray(dataset.rows) && dataset.rows.length);
+  }
+
+  const mappedNewSheets = new Set();
+
+  function resolveMetricDataset(metric) {
+    const names = [metric.sheet].concat(metric.aliases || []);
+    const name = names.find((candidate) => hasRows(getDataset(candidate)));
+    if (!name) return null;
+    if (name !== metric.sheet) mappedNewSheets.add(name);
+    return getDataset(name);
+  }
+
+  function appendReportIntro(body, text) {
+    if (!text) return;
+    const note = document.createElement('p');
+    note.className = 'report-intro';
+    note.textContent = text;
+    body.appendChild(note);
   }
 
   function getHeaderIndex(headers, match) {
@@ -588,14 +611,15 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
       .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'pagina';
   }
 
-  function createPage(title, pageType) {
+  function createPage(title, pageType, identity, legacyPageId) {
     const page = document.createElement('section');
     page.className = 'report-page' + (pageType ? ' ' + pageType : '');
     const year = latestResponse && latestResponse.year ? latestResponse.year : '';
     const month = latestResponse && latestResponse.monthLabel ? latestResponse.monthLabel : 'Todos los meses';
-    const baseKey = pageSlug((pageType || 'page') + '-' + (title || 'sin-titulo'));
+    const baseKey = pageSlug((pageType || 'page') + '-' + (identity || title || 'sin-titulo'));
     pageKeyCounts[baseKey] = (pageKeyCounts[baseKey] || 0) + 1;
     page.dataset.pageId = baseKey + '-' + pageKeyCounts[baseKey];
+    if (legacyPageId && legacyPageId !== page.dataset.pageId) page.dataset.legacyPageId = legacyPageId;
     page.innerHTML = '<header class="page-header"><h1>' + esc(title) + '</h1><div class="brand-mark"><img src="assets/jer-logo.png" alt="JER, Junto a ti"></div><span class="period-chip">PERÍODO: ' + esc(month) + ' ' + esc(year) + '</span></header><div class="page-body"></div><footer class="page-footer"></footer>';
     pagesRoot.appendChild(page);
     return { page, body: page.querySelector('.page-body') };
@@ -633,20 +657,26 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
     return panel;
   }
 
-  function renderMetricPage(item) {
-    const { body } = createPage(item.title, 'metric-page');
-    if (item.note) body.innerHTML = '<p class="page-note">' + esc(item.note) + '</p>';
+  function renderMetricPage(item, legacyPageId) {
+    const available = item.metrics.map((metric) => ({ metric, dataset: resolveMetricDataset(metric) }))
+      .filter((entry) => entry.dataset);
+    if (!available.length) return;
+    const { body } = createPage(item.title, 'metric-page', item.metrics[0].sheet, legacyPageId);
+    appendReportIntro(body, item.note);
     const stack = document.createElement('div');
     stack.className = 'metric-stack';
-    item.metrics.forEach((metric) => stack.appendChild(renderMetricPanel(metric, getDataset(metric.sheet))));
+    available.forEach(({ metric, dataset }) => stack.appendChild(renderMetricPanel(metric, dataset)));
     body.appendChild(stack);
   }
 
   function renderPairTables(item) {
+    const available = item.cards.filter((card) => hasRows(getDataset(card.sheet)));
+    if (!available.length) return;
     const { body } = createPage(item.title, 'paired-table-page');
+    appendReportIntro(body, item.note);
     const grid = document.createElement('div');
-    grid.className = 'general-two-col';
-    item.cards.forEach((card) => {
+    grid.className = 'general-two-col' + (available.length === 1 ? ' single-card' : '');
+    available.forEach((card) => {
       const ds = getDataset(card.sheet);
       const el = document.createElement('section');
       el.className = 'general-card';
@@ -657,7 +687,9 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
   }
 
   function renderCnjsa(item) {
+    if (!hasRows(getDataset(item.sheet))) return;
     const { body } = createPage(item.title, 'metric-page');
+    appendReportIntro(body, item.note);
     const stack = document.createElement('div');
     stack.className = 'metric-stack';
     const ds = getDataset(item.sheet);
@@ -673,7 +705,9 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
   }
 
   function renderDueDiligence(item) {
+    if (!hasRows(getDataset(item.sheet))) return;
     const { body } = createPage(item.title, 'paired-table-page');
+    appendReportIntro(body, item.note);
     const ds = getDataset(item.sheet);
     const model = getMetricModel({
       title: 'TOTAL DE MONITOREOS', primaryIndex: 14, secondaryIndex: 19,
@@ -694,64 +728,81 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
   }
 
   function renderTrainingDashboard(item) {
+    const cap = getDataset(item.capSheet);
+    const inductions = getDataset(item.inductionSheet);
+    if (!hasRows(cap) && !hasRows(inductions)) return;
     const { body } = createPage(item.title, 'metric-page');
+    appendReportIntro(body, item.note);
     const stack = document.createElement('div');
     stack.className = 'metric-stack';
-    const cap = getDataset(item.capSheet);
-    stack.appendChild(renderMetricPanel({
+    if (hasRows(cap)) stack.appendChild(renderMetricPanel({
       title: 'CANTIDAD DE CAPACITACIONES POR MES', sheet: item.capSheet,
       primaryIndex: 16, displayIndices: [1, 16]
     }, cap));
-    const inductions = getDataset(item.inductionSheet);
-    stack.appendChild(renderMetricPanel({
+    if (hasRows(inductions)) stack.appendChild(renderMetricPanel({
       title: 'INDUCCIONES POR MES', sheet: item.inductionSheet,
       seriesIndices: [2, 3], displayIndices: [1, 2, 3, 4]
     }, inductions));
     body.appendChild(stack);
   }
 
-  function renderDetailPages(sheetName, title, tableTitle) {
+  function renderDetailPages(sheetName, title, tableTitle, note) {
     const ds = getDataset(sheetName);
-    if (!ds) {
-      const { body } = createPage(title, 'general-table-page');
-      body.innerHTML = '<p class="empty-cell">No se encontró la hoja de origen: ' + esc(sheetName) + '</p>';
-      return;
-    }
+    // Reservar los identificadores de la versión anterior, incluidas sus hojas vacías.
+    // Así una edición guardada no termina asociada a otra continuación al cambiar el período.
+    const formerPageCount = hasRows(ds) ? Math.ceil(ds.rows.length / 18) : 1;
+    const legacyPageIds = Array.from({ length: formerPageCount }, (_, index) => {
+      const formerTitle = index ? title + ' · CONTINUACIÓN ' + index : title;
+      const key = pageSlug('general-table-page-' + formerTitle);
+      legacyDetailKeys[key] = (legacyDetailKeys[key] || 0) + 1;
+      return key + '-' + legacyDetailKeys[key];
+    });
+    if (!hasRows(ds)) return;
 
     const headers = ds.headers || [];
     const indices = headers.map((_, i) => i).filter((i) => i !== yearIndex(headers));
     const rows = ds.rows || [];
     const sectionLabel = tableTitle || title;
-    const PAGE_SIZE = 18; // Límite fijo para que el orden no dependa del monitor.
-    const chunks = [];
-
     if (!indices.length) {
-      const { body } = createPage(title, 'general-table-page');
-      body.innerHTML = '<p class="empty-cell">No hay columnas disponibles para mostrar.</p>';
       return;
     }
 
-    for (let i = 0; i < rows.length; i += PAGE_SIZE) {
-      chunks.push(rows.slice(i, i + PAGE_SIZE));
-    }
-    if (!chunks.length) chunks.push([]);
-
-    chunks.forEach((chunk, chunkIndex) => {
+    let offset = 0;
+    let chunkIndex = 0;
+    while (offset < rows.length) {
       // La primera página usa el título normal; las siguientes continúan en orden.
       const pageTitle = chunkIndex === 0
         ? title
         : title + ' · CONTINUACIÓN ' + chunkIndex;
-      const { body } = createPage(pageTitle, 'general-table-page');
-      const singleChunk = { headers, rows: chunk };
-      body.innerHTML =
-        '<p class="detail-intro">' + esc(sectionLabel) + ' · ' + chunk.length +
-        ' registro(s) en esta página.</p><div class="detail-table-wrap">' +
-        createTable(singleChunk, { indices }) + '</div>';
-    });
+      const legacyPageId = legacyPageIds[chunkIndex] || null;
+      const { body } = createPage(pageTitle, 'general-table-page', sheetName + '-parte-' + chunkIndex, legacyPageId);
+      if (chunkIndex === 0) appendReportIntro(body, note);
+      const intro = document.createElement('p');
+      intro.className = 'detail-intro';
+      const wrap = document.createElement('div');
+      wrap.className = 'detail-table-wrap';
+      body.append(intro, wrap);
+
+      const chunk = [];
+      while (offset + chunk.length < rows.length) {
+        const next = rows[offset + chunk.length];
+        wrap.innerHTML = createTable({ headers, rows: chunk.concat([next]) }, { indices });
+        const table = wrap.querySelector('table');
+        const measurable = wrap.clientHeight > 0 && table && table.scrollHeight > 0;
+        if (measurable && table.scrollHeight > wrap.clientHeight - 3 && chunk.length) break;
+        // En un contenedor aún sin medidas se usa un límite seguro.
+        if (!measurable && chunk.length >= (JER_CONFIG.detailRowsPerPage || 10)) break;
+        chunk.push(next);
+      }
+      intro.textContent = sectionLabel + ' · ' + chunk.length + ' registro(s) en esta página.';
+      wrap.innerHTML = createTable({ headers, rows: chunk }, { indices });
+      offset += chunk.length;
+      chunkIndex++;
+    }
   }
 
   function renderDetailPair(item) {
-    item.sheets.forEach((entry) => renderDetailPages(entry.sheet, item.title + ' · ' + entry.title, entry.title));
+    item.sheets.forEach((entry) => renderDetailPages(entry.sheet, item.title + ' · ' + entry.title, entry.title, entry.note));
   }
 
   function renderClosing() {
@@ -764,7 +815,7 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
     names.forEach((entry) => {
       const sheetName = typeof entry === 'string' ? entry : entry.name;
       const ds = getDataset(sheetName);
-      if (!sheetName || !ds) return;
+      if (!sheetName || !hasRows(ds) || mappedNewSheets.has(sheetName)) return;
       const mi = monthIndex(ds.headers || []);
       const numeric = numericColumns(ds);
       if (mi >= 0 && numeric.length && ds.rows.length <= 15) {
@@ -789,8 +840,17 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
     charts.splice(0).forEach((chart) => { try { chart.destroy(); } catch (_) {} });
     pagesRoot.innerHTML = '';
     pageKeyCounts = Object.create(null);
+    legacyDetailKeys = Object.create(null);
+    mappedNewSheets.clear();
+    const legacyMetricKeys = Object.create(null);
     let dynamicSheetsRendered = false;
     JER_CONFIG.reportSequence.forEach((item) => {
+      let legacyPageId = null;
+      if (item.type === 'metric') {
+        const key = pageSlug('metric-page-' + item.title);
+        legacyMetricKeys[key] = (legacyMetricKeys[key] || 0) + 1;
+        legacyPageId = key + '-' + legacyMetricKeys[key];
+      }
       if (item.type === 'closing' && !dynamicSheetsRendered) {
         renderNewSheetPages();
         dynamicSheetsRendered = true;
@@ -798,13 +858,13 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
       switch (item.type) {
         case 'cover': renderCover(); break;
         case 'activities': renderActivities(); break;
-        case 'metric': renderMetricPage(item); break;
+        case 'metric': renderMetricPage(item, legacyPageId); break;
         case 'narrative': renderNarrative(item); break;
         case 'pairedTables': renderPairTables(item); break;
         case 'cnjsa': renderCnjsa(item); break;
         case 'dueDiligence': renderDueDiligence(item); break;
         case 'trainingDashboard': renderTrainingDashboard(item); break;
-        case 'detail': renderDetailPages(item.sheet, item.title, item.tableTitle); break;
+        case 'detail': renderDetailPages(item.sheet, item.title, item.tableTitle, item.note); break;
         case 'detailPair': renderDetailPair(item); break;
         case 'closing': renderClosing(); break;
         default: break;

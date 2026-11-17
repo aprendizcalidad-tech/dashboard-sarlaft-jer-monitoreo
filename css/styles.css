@@ -52,6 +52,8 @@ body { margin: 0; color: var(--ink); font-family: Arial, Helvetica, sans-serif; 
 .page-body { flex: 1 1 auto; min-height: 0; padding: 11px 22px 27px; overflow: hidden; }
 .page-footer { position: absolute; right: 15px; bottom: 7px; color: #73798a; font-size: 9px; }
 .page-note { margin: 0 0 10px; padding: 7px 10px; border: 1px solid #e0e2e8; font-size: 11px; line-height: 1.35; }
+.report-intro { flex: 0 0 auto; margin: 0; padding: 9px 12px; border: 1px solid #d4d7df; background: #fff; color: #252934; font-size: 12px; line-height: 1.35; }
+.general-two-col.single-card { grid-template-columns: 1fr; }
 
 .metric-stack { display: flex; flex-direction: column; gap: 9px; height: 100%; }
 .metric-panel { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; border: 1px solid #d9dce5; }
@@ -158,6 +160,8 @@ body { margin: 0; color: var(--ink); font-family: Arial, Helvetica, sans-serif; 
 .report-page.selected-page { outline: 3px solid #8594ee; outline-offset: 3px; }
 .editing-text[contenteditable="true"] { outline: 1px dashed #6575d8; outline-offset: 2px; border-radius: 2px; cursor: text; }
 .editing-text[contenteditable="true"]:focus { outline: 2px solid #3949ab; background-color: #fffef8; }
+.page-header h1[contenteditable="true"] { min-width: 90px; cursor: text; }
+.page-header h1[contenteditable="true"]:focus { color: #202943; background-color: #fffef8; text-transform: none; }
 .editor-text-block { flex: 0 0 auto; min-width: 0; margin: 4px 0; padding: 7px 9px; border: 1px dashed #929ccf; border-radius: 3px; color: #252934; background: #fffef8; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 .editor-text-block[contenteditable="true"]:focus { outline: 2px solid #3949ab; }
 .custom-page-copy { flex: 1 1 auto; min-height: 80px; padding: 24px 26px; border: 1px dashed #d2d7e5; color: #292d36; font-family: Arial, Helvetica, sans-serif; font-size: 17px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }

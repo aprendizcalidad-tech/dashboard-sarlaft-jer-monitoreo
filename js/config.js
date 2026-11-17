@@ -11,7 +11,7 @@ const JER_CONFIG = {
     { type: 'cover' },
     { type: 'activities' },
 
-    { type: 'metric', title: 'MONITOREO DE GIROS BOYACÁ', metrics: [
+    { type: 'metric', title: 'MONITOREO DE GIROS BOYACÁ', note: 'La Oficial de cumplimiento de JER S.A. como medida de prevención y control del LA/FT-PADM., efectúa mensual, trimestral y anualmente seguimiento y monitoreo a la frecuencia de cobro y envío de giros, de usuarios y clientes externos e internos de acuerdo con la politica de monitoreo transaccional:', metrics: [
       { title: 'CANTIDAD DE GIROS ENVIADOS', sheet: 'N. GIROS ENV BOY' },
       { title: 'GIROS ENVIADOS POR PERSONA', sheet: 'N. P GIROS ENV. BOY' }
     ]},
@@ -25,7 +25,7 @@ const JER_CONFIG = {
     ]},
     { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE GIROS BOYACÁ', text: 'Durante el período evaluado, el sistema de monitoreo transaccional evaluó el 100% de las operaciones del departamento de Boyacá. presentando un comportamiento operativo estable y alineado con las políticas de prevención de lavado de activos y financiación del terrorismo (SARLAFT) de la organización. Tras el análisis de las alertas generadas por el sistema de monitoreo automatizado y las revisiones manuales correspondientes, se concluye que la operación en Boyacá se encuentra dentro de los límites de tolerancia al riesgo establecidos por la organización. No se identificaron tipologías de fraude masivo, pitufeo (estructuración) descontrolado o redes de captación ilegal en la región.' },
 
-    { type: 'metric', title: 'MONITOREO DE GIROS AMAZONAS', metrics: [
+    { type: 'metric', title: 'MONITOREO DE GIROS AMAZONAS', note: 'La Oficial de cumplimiento de JER S.A. como medida de prevención y control del LA/FT-PADM., efectúa mensual, trimestral y anualmente seguimiento y monitoreo a la frecuencia de cobro y envío de giros, de usuarios y clientes externos e internos de acuerdo con la politica de monitoreo transaccional:', metrics: [
       { title: 'CANTIDAD DE GIROS ENVIADOS', sheet: ' N. GIROS ENV AMZ' },
       { title: 'GIROS ENVIADOS POR PERSONA', sheet: 'N. P GIROS ENV. AMZ' }
     ]},
@@ -39,7 +39,7 @@ const JER_CONFIG = {
     ]},
     { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE GIROS AMAZONAS', text: 'Durante el período evaluado, el sistema de monitoreo transaccional evaluó el 100% de las operaciones del departamento de Amazonas el servicio de giros postales presentó un comportamiento operativo estable, seguro y alineado con las políticas del Sistema de Administración del Riesgo de Lavado de Activos y Financiación del Terrorismo (SARLAFT). A pesar de ser una zona de frontera con dinámicas comerciales particulares, las alertas automatizadas y los controles de debida diligencia aplicados en los puntos de atención demuestran que la operación en Amazonas se encuentra dentro de los límites de tolerancia al riesgo establecidos por la organización. No se detectaron patrones de estructuración transfronteriza, flujos atípicos de efectivo ni sospechas de financiación de actividades ilícitas.' },
 
-    { type: 'metric', title: 'MONITOREO BETPLAY BOYACÁ', metrics: [
+    { type: 'metric', title: 'MONITOREO BETPLAY BOYACÁ', note: 'La Oficial de cumplimiento de JER S.A. como medida de prevención y control del LA/FT-PADM., efectúa de manera mensual seguimiento y monitoreo a la frecuencia de recargas y retiros de Betplay, de usuarios y clientes externos e internos, de acuerdo con la politica de monitoreo establecida por JER S.A.:', metrics: [
       { title: 'CANTIDAD DE RECARGAS', sheet: 'CANT RECARGAS BETPLAY BOY' },
       { title: 'RECARGAS POR PERSONA', sheet: 'N PERSONAS RECARGAS BOY' }
     ]},
@@ -53,7 +53,7 @@ const JER_CONFIG = {
     ]},
     { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE BETPLAY BOYACÁ', text: 'Se realizó monitoreo de recargas y retiros de Betplay, acorde con la politica de monitoreo transaccional establecida por la organización, se generó alerta vía correo electronico a corredor empresarial para clientes con recargas o retiros por montos superiores a 40 millones de pesos por persona, con el fin de que se efectue análisis detallado de las apuestas y de ser el caso se realice el bloqueo del usuario. para usuarios internos se solicito a los gestores de zona indagar el motivo de recargas frecuentes de los colocadores y colaboradores de nómina con el fin de recordarles las implicaciones de prestar su nombre para realizar este tipo de apuestas, así como efectuar indagación acerca del origen de los fondos con los que realizan las recargas.' },
 
-    { type: 'metric', title: 'MONITOREO BETPLAY AMAZONAS', metrics: [
+    { type: 'metric', title: 'MONITOREO BETPLAY AMAZONAS', note: 'La Oficial de cumplimiento de JER S.A. como medida de prevención y control del LA/FT-PADM., efectúa de manera mensual seguimiento y monitoreo a la frecuencia de recargas y retiros de Betplay, de usuarios y clientes externos e internos, de acuerdo con la politica de monitoreo establecida por JER S.A.:', metrics: [
       { title: 'CANTIDAD DE RECARGAS', sheet: 'CANT RECARGAS BETPLAY AMZ' },
       { title: 'RECARGAS POR PERSONA', sheet: 'N PERSONAS RECARGAS AMZ' }
     ]},
@@ -66,12 +66,12 @@ const JER_CONFIG = {
       { title: 'MONTO DE RETIROS', sheet: 'MONTOS RETIROS AMZ' }
     ]},
     { type: 'narrative', title: 'MONITOREO DE TRANSACCIONES DE BETPLAY AMAZONAS', text: 'Se realizó monitoreo de recargas y retiros de Betplay, acorde con la politica de monitoreo transaccional establecida por la organización, se generó alerta vía correo electronico a corredor empresarial para clientes con recargas o retiros por montos superiores a 40 millones de pesos por persona, con el fin de que se efectue análisis detallado de las apuestas y de ser el caso se realice el bloqueo del usuario. para usuarios internos se solicito a los gestores de zona indagar el motivo de recargas frecuentes de los colocadores y colaboradores de nómina con el fin de recordarles las implicaciones de prestar su nombre para realizar este tipo de apuestas, así como efectuar indagación acerca del origen de los fondos con los que realizan las recargas.' },
-    { type: 'metric', title: 'MONITOREO DE PREMIOS BOYACÁ', metrics: [
+    { type: 'metric', title: 'MONITOREO DE PREMIOS BOYACÁ', note: 'La Oficial de cumplimiento de JER S.A., como medida de prevención y control del LA/FT-PADM., efectúa mensual, trimestral y anualmente seguimiento y monitoreo a la frecuencia y cuantía de cobro de PREMIOS DE CHANCE por un mismo cliente ganador, sea externo o interno de acuerdo con la politica de monitoreo transaccional establecida por JER S.A.:', metrics: [
       { title: 'CANTIDAD DE PREMIOS CHANCE', sheet: 'CANT PREMIOS CHANCE BOY' },
       { title: 'PREMIOS CHANCE POR PERSONA', sheet: 'N. PERSONAS PREMIOS CHANCE BOY' }
     ]},
     { type: 'metric', title: 'MONITOREO DE PREMIOS BOYACÁ', metrics: [
-      { title: 'MONTOS DE PREMIOS CHANCE PAGADOS', sheet: ' MONTOS TOTALES PREMIOS CHANCE ' },
+      { title: 'MONTOS DE PREMIOS CHANCE PAGADOS', sheet: ' MONTOS TOTALES PREMIOS CHANCE ', aliases: ['MONTOS TOTALES PREMIOS CHANCE BOY'] },
       { title: 'CANTIDAD DE PREMIOS INSTANTÁNEAS PAGADOS', sheet: 'CANT. INSTANT-BOY' }
     ]},
     { type: 'metric', title: 'MONITOREO DE PREMIOS BOYACÁ', metrics: [
@@ -85,12 +85,12 @@ const JER_CONFIG = {
       Clientes ganadores INTERNOS: Se tiene en cuenta la estrategia comercial de los vendedores de chance, de cobro de premios de clientes frecuentes, como medida de fidelización de clientes.
       
       teniendo en cuenta que las transacciones analizadas se encuentran dentro del rango de normalidad establecido por JER S.A. no se generan alertas por operaciones inusuales o sospechosas.` },
-    { type: 'metric', title: 'MONITOREO DE PREMIOS AMAZONAS', metrics: [
+    { type: 'metric', title: 'MONITOREO DE PREMIOS AMAZONAS', note: 'La Oficial de cumplimiento de JER S.A., como medida de prevención y control del LA/FT-PADM., efectúa mensual, trimestral y anualmente seguimiento y monitoreo a la frecuencia y cuantía de cobro de PREMIOS DE CHANCE por un mismo cliente ganador, sea externo o interno de acuerdo con la politica de monitoreo transaccional establecida por JER S.A.:', metrics: [
       { title: 'CANTIDAD DE PREMIOS CHANCE', sheet: 'CANT PREMIOS CHANCE AMZ' },
       { title: 'PREMIOS CHANCE POR PERSONA', sheet: 'N. PERSONAS PREMIOS CHANCE AMZ' }
     ]},
     { type: 'metric', title: 'MONITOREO DE PREMIOS AMAZONAS', metrics: [
-      { title: 'MONTOS DE PREMIOS CHANCE PAGADOS', sheet: 'MONTOS TOTALES PREMIOS CHANCE A' },
+      { title: 'MONTOS DE PREMIOS CHANCE PAGADOS', sheet: 'MONTOS TOTALES PREMIOS CHANCE A', aliases: ['MONTOS TOTALES PREMIOS CHANCE AMZ'] },
       { title: 'CANTIDAD DE PREMIOS INSTANTÁNEAS PAGADOS', sheet: 'CANT. INSTANT AMZ' }
     ]},
     { type: 'metric', title: 'MONITOREO DE PREMIOS AMAZONAS', metrics: [
@@ -104,18 +104,18 @@ const JER_CONFIG = {
       Clientes ganadores INTERNOS: Se tiene en cuenta la estrategia comercial de los vendedores de chance, de cobro de premios de clientes frecuentes, como medida de fidelización de clientes.
       
       teniendo en cuenta que las transacciones analizadas se encuentran dentro del rango de normalidad establecido por JER S.A. no se generan alertas por operaciones inusuales o sospechosas.` },
-    { type: 'pairedTables', title: 'OPERACIONES INUSUALES · OPERACIONES SOSPECHOSAS', cards: [
+    { type: 'pairedTables', title: 'OPERACIONES INUSUALES · OPERACIONES SOSPECHOSAS', note: 'La Oficial de cumplimiento de JER S.A efectuó el correspondiente análisis transaccional de operaciones de giros y cobro de premios, reportando oportunamente a la UIAF – CNJSA (premios) y MINTICS (Premios) ausencia de operaciones sospechosas.', cards: [
       { title: 'REPORTES ROS', sheet: 'ROS' }, { title: 'OPERACIONES INUSUALES DE GIROS', sheet: 'ROI' }
     ]},
-    { type: 'cnjsa', title: 'REPORTE A ENTES DE CONTROL', sheet: 'CNJSA' },
-    { type: 'dueDiligence', title: 'DEBIDA DILIGENCIA EN LA VERIFICACIÓN DE TERCEROS', sheet: 'DEBIDA DILIGENCIA' },
-    { type: 'metric', title: 'DEBIDA DILIGENCIA EN LA VERIFICACIÓN DE TERCEROS', metrics: [
+    { type: 'cnjsa', title: 'REPORTE A ENTES DE CONTROL', sheet: 'CNJSA', note: 'La Oficial de cumplimiento de JER S.A., revisó y reportó oportunamente los ganadores mensuales de premio superiores a 15 UVT a la UIAF.:' },
+    { type: 'dueDiligence', title: 'DEBIDA DILIGENCIA EN LA VERIFICACIÓN DE TERCEROS', sheet: 'DEBIDA DILIGENCIA', note: 'La Oficial de cumplimiento de JER S.A., efectúo la verificación de terceros que se vincularon a JER, como vendedores, proveedores o empleados, igualmente verificó a usuarios y clientes de giros y ganadores de premios, según políticas de monitoreo y seguimiento establecida por la organización, se dio respuesta vía correo electronico al solicitante de la vinculación indicando si se daba o no continuidad al proceso.' },
+    { type: 'metric', title: 'DEBIDA DILIGENCIA EN LA VERIFICACIÓN DE TERCEROS', note: 'La Oficial de cumplimiento de JER S.A., efectúo el monitoreo trimestral de PEPS y Extranjeros para Boyacá y Amazonas, sin evidenciar novedades o coincidencias LA/FT.', metrics: [
       { title: 'PEP Y EXTRANJEROS', sheet: 'PEP EXT', displayIndices: [1, 2, 3], primaryIndex: 2, secondaryIndex: 3 }
     ]},
-    { type: 'trainingDashboard', title: 'CAPACITACIONES E INDUCCIONES', capSheet: 'CAPACITACIONES', inductionSheet: 'INDUCCIONES' },
-    { type: 'detail', title: 'FORMACIÓN Y ACTUALIZACIÓN DE COMPETENCIAS', sheet: 'formacion oc', tableTitle: 'FORMACIÓN OFICIAL DE CUMPLIMIENTO' },
+    { type: 'trainingDashboard', title: 'CAPACITACIONES E INDUCCIONES', capSheet: 'CAPACITACIONES', inductionSheet: 'INDUCCIONES', note: 'JER S.A. efectúo procesos de capacitación a fuerza de venta, cargos administrativos y de inducción a nuevos vinculados a nómina, tanto de Boyacá como Amazonas a través del módulo E-learning de capacitación virtual, academia JER., visitas personalizadas o reuniones virtuales de inducción, en materia de prevención y control del LA/FT-PADM., efectuando las respectivas evaluaciones de conocimientos sobre el tema.' },
+    { type: 'detail', title: 'FORMACIÓN Y ACTUALIZACIÓN DE COMPETENCIAS', sheet: 'formacion oc', tableTitle: 'FORMACIÓN OFICIAL DE CUMPLIMIENTO', note: 'Durante el periodo, la Oficial de Cumplimiento SARLAFT. de JER S.A. participó en foros, plenarias, webinars y seminarios de capacitación a fin de fortalecer y actualizar sus competencias y conocimientos en temas propios del cargo.' },
     { type: 'detailPair', title: 'FORMACIÓN Y ACTUALIZACIÓN DE COMPETENCIAS', sheets: [
-      { sheet: 'CAPACITACIONES JER', title: 'CAPACITACIONES JER' }
+      { sheet: 'CAPACITACIONES JER', title: 'CAPACITACIONES JER', note: 'Durante el periodo, la Oficial de Cumplimiento SARLAFT. de JER S.A. tambien participó en capacitaciones sobre diferentes temas relacionados con las actividades propias de JER S.A.' }
     ]},
     { type: 'detail', title: 'OTRAS ACTIVIDADES', sheet: 'otras act', tableTitle: 'OTRAS ACTIVIDADES' },
     { type: 'detail', title: 'REUNIONES', sheet: 'REUNIONES', tableTitle: 'REUNIONES' },
