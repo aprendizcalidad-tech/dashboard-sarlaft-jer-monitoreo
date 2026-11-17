@@ -398,7 +398,7 @@
 
   function formatCell(value, header) {
     if (value == null || value === '') return '—';
-    const h = normalize(headers[index]);
+    const h = normalize(header);
     if (typeof value === 'number') {
       if (h.includes('%') || h.includes('PORCENTAJE')) return formatPercent(value);
       return formatNumber(value);
@@ -728,7 +728,7 @@ html += '<td' + cellStyle + ' title="' + esc(cell) + '">' +
       .filter((index) => index >= 1 && index <= zoneEnd && normalize(headers[index]));
     const monitorIndices = headers.map((header, index) => index)
       .filter((index) => index === monthIndex(headers) ||
-        (index > zoneEnd && index <= monitorEnd && normalize(header)));
+        (index > zoneEnd && index <= monitorEnd && normalize(headers[index])));
 
     const sections = [
       { title: 'DEBIDA DILIGENCIA ZONAS', chartTitle: 'TOTAL CONSULTAS POR MES',
